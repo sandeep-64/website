@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Line Deduplicator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --background-color: #f4f6f7;
+            --text-color: #2c3e50;
+            --border-color: #bdc3c7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+        }
+
+        .input-section {
+            margin-bottom: 1.5rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            resize: vertical;
+            font-family: 'Consolas', monospace;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #27ae60;
+        }
+
+        .output-section {
+            background-color: #f9f9f9;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stats {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .copy-btn:hover {
+            color: #2980b9;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Consolas', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Advanced Line Deduplicator</h1>
+        </div>
+
+        <div class="input-section">
+            <textarea 
+                id="inputText" 
+                placeholder="Paste your text here. Each line will be checked for duplicates..."
+            ></textarea>
+        </div>
+
+        <div class="button-group">
+            <button class="btn btn-primary" onclick="removeDuplicates()">
+                <i class="fas fa-filter"></i> Remove Duplicates
+            </button>
+            <button class="btn btn-secondary" onclick="clearAll()">
+                <i class="fas fa-trash"></i> Clear All
+            </button>
+        </div>
+
+        <div class="output-section">
+            <div class="output-header">
+                <h3>Unique Lines</h3>
+                <div class="stats" id="statsInfo"></div>
+                <button class="copy-btn" onclick="copyToClipboard()" title="Copy to Clipboard">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <pre id="output"></pre>
+        </div>
+    </div>
+
+    <script>
+        function removeDuplicates() {
+            const inputText = document.getElementById('inputText').value;
+            
+            // Trim each line and remove empty lines
+            const lines = inputText.split('\n')
+                .map(line => line.trim())
+                .filter(line => line !== '');
+            
+            // Remove duplicates while preserving order
+            const uniqueLines = [];
+            const seenLines = new Set();
+
+            lines.forEach(line => {
+                if (!seenLines.has(line)) {
+                    uniqueLines.push(line);
+                    seenLines.add(line);
+                }
+            });
+
+            // Display output
+            const outputElement = document.getElementById('output');
+            const statsElement = document.getElementById('statsInfo');
+            
+            outputElement.textContent = uniqueLines.join('\n');
+            statsElement.textContent = `Total Lines: ${lines.length} | Unique Lines: ${uniqueLines.length}`;
+        }
+
+        function clearAll() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('output').textContent = '';
+            document.getElementById('statsInfo').textContent = '';
+        }
+
+        function copyToClipboard() {
+            const outputText = document.getElementById('output').textContent;
+            
+            if (outputText.trim() === '') {
+                alert('No text to copy!');
+                return;
+            }
+
+            navigator.clipboard.writeText(outputText).then(() => {
+                alert('Copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy text');
+            });
+        }
+    </script>
+</body>
+</html>

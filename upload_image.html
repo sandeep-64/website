@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Gallery with Popup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .paste-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .paste-area {
+            width: 100%;
+            height: 100px;
+            border: 2px dashed #ccc;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+        .paste-area.dragover {
+            background-color: #e1f5fe;
+            border-color: #2196f3;
+        }
+        .search-section {
+            margin-bottom: 20px;
+        }
+        #searchInput {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .image-card {
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .image-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .image-card img:hover {
+            transform: scale(1.02);
+        }
+        .image-info {
+            margin-top: 10px;
+        }
+        .image-info input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .delete-btn {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .delete-btn:hover {
+            background-color: #cc0000;
+        }
+        .instructions {
+            background-color: #e1f5fe;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            overflow: auto;
+        }
+        .modal-content {
+            position: relative;
+            margin: auto;
+            padding: 20px;
+            max-width: 90%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .modal img {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+        }
+        .modal-description {
+            color: white;
+            margin-top: 15px;
+            font-size: 16px;
+            text-align: center;
+        }
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-modal:hover {
+            color: #bbb;
+        }
+        .modal-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            padding: 16px;
+            font-weight: bold;
+            user-select: none;
+        }
+        .modal-nav:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        .prev {
+            left: 20px;
+        }
+        .next {
+            right: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Gallery</h1>
+        
+        <div class="instructions">
+            <h3>How to use:</h3>
+            <ol>
+                <li>Copy an image (Ctrl+C or ⌘+C) from anywhere</li>
+                <li>Click on the paste area below and press Ctrl+V or ⌘+V</li>
+                <li>Or drag and drop an image into the paste area</li>
+                <li>Double-click any image to view it in full size</li>
+            </ol>
+        </div>
+
+        <div class="paste-section">
+            <div id="pasteArea" class="paste-area">
+                Click here and press Ctrl+V to paste image or drag & drop image here
+            </div>
+            <input type="text" id="imageContext" placeholder="Enter image description/context">
+        </div>
+
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="Search images by description...">
+        </div>
+
+        <div id="gallery" class="gallery"></div>
+    </div>
+
+    <!-- Modal -->
+    <div id="imageModal" class="modal">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <span class="modal-nav prev" onclick="changeImage(-1)">&#10094;</span>
+        <span class="modal-nav next" onclick="changeImage(1)">&#10095;</span>
+        <div class="modal-content">
+            <img id="modalImage" src="" alt="Full size image">
+            <div id="modalDescription" class="modal-description"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize images array from localStorage or empty array
+        let images = JSON.parse(localStorage.getItem('images')) || [];
+        let currentImageIndex = 0;
+
+        // Setup paste area
+        const pasteArea = document.getElementById('pasteArea');
+        const modal = document.getElementById('imageModal');
+        
+        // Handle paste event
+        document.addEventListener('paste', function(e) {
+            if (document.activeElement.tagName === 'INPUT') return;
+            
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    handleImage(blob);
+                }
+            }
+        });
+
+        // Handle drag and drop
+        pasteArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            pasteArea.classList.add('dragover');
+        });
+
+        pasteArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            pasteArea.classList.remove('dragover');
+        });
+
+        pasteArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            pasteArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            for (let i = 0; i < files.length; i++) {
+                if (files[i].type.indexOf('image') !== -1) {
+                    handleImage(files[i]);
+                }
+            }
+        });
+
+        // Modal functions
+        function openModal(imageId) {
+            const imageIndex = images.findIndex(img => img.id === imageId);
+            if (imageIndex !== -1) {
+                currentImageIndex = imageIndex;
+                updateModalImage();
+                modal.style.display = 'block';
+            }
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        function updateModalImage() {
+            const img = images[currentImageIndex];
+            document.getElementById('modalImage').src = img.data;
+            document.getElementById('modalDescription').textContent = img.context;
+        }
+
+        function changeImage(direction) {
+            currentImageIndex = (currentImageIndex + direction + images.length) % images.length;
+            updateModalImage();
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Handle keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (modal.style.display === 'block') {
+                if (e.key === 'ArrowLeft') changeImage(-1);
+                if (e.key === 'ArrowRight') changeImage(1);
+                if (e.key === 'Escape') closeModal();
+            }
+        });
+
+        // Function to handle image file
+        function handleImage(blob) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageObject = {
+                    id: Date.now(),
+                    data: e.target.result,
+                    context: document.getElementById('imageContext').value,
+                    timestamp: new Date().toISOString()
+                };
+                
+                images.unshift(imageObject);
+                localStorage.setItem('images', JSON.stringify(images));
+                displayImages(images);
+                
+                // Reset input
+                document.getElementById('imageContext').value = '';
+            };
+            reader.readAsDataURL(blob);
+        }
+
+        // Function to delete image
+        function deleteImage(id) {
+            images = images.filter(img => img.id !== id);
+            localStorage.setItem('images', JSON.stringify(images));
+            displayImages(images);
+        }
+
+        // Function to update image context
+        function updateContext(id, newContext) {
+            const index = images.findIndex(img => img.id === id);
+            if (index !== -1) {
+                images[index].context = newContext;
+                localStorage.setItem('images', JSON.stringify(images));
+            }
+        }
+
+        // Function to display images
+        function displayImages(imagesToShow) {
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '';
+            
+            imagesToShow.forEach(img => {
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                
+                card.innerHTML = `
+                    <img src="${img.data}" alt="Pasted image" ondblclick="openModal(${img.id})">
+                    <div class="image-info">
+                        <input type="text" value="${img.context}" 
+                               onchange="updateContext(${img.id}, this.value)"
+                               placeholder="Enter description">
+                        <p><small>${new Date(img.timestamp).toLocaleString()}</small></p>
+                        <button class="delete-btn" onclick="deleteImage(${img.id})">Delete</button>
+                    </div>
+                `;
+                
+                gallery.appendChild(card);
+            });
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredImages = images.filter(img => 
+                img.context.toLowerCase().includes(searchTerm)
+            );
+            displayImages(filteredImages);
+        });
+
+        // Initial display
+        displayImages(images);
+    </script>
+</body>
+</html>

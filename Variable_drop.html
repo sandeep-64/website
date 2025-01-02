@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Variable Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            justify-content: flex-start; /* Aligns content to the left */
+            align-items: flex-start;
+            height: 100vh;
+        }
+        h1 {
+            color: #555;
+            margin-top: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-left: 20px;
+        }
+        input[type="text"], textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 15px;
+            margin-right: 5px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .task {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 600px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        select {
+            margin-right: 10px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Variables</h1>
+        <input type="text" id="variableName" placeholder="Enter variable name">
+        <textarea id="dropdownOptions" placeholder="Enter dropdown options, one per line"></textarea>
+        <button onclick="createVariable()">Create Variable</button>
+        <div id="taskContainer"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', loadTasks);
+
+        function createVariable() {
+            const variableName = document.getElementById('variableName').value;
+            const optionsText = document.getElementById('dropdownOptions').value;
+
+            if (!variableName || !optionsText) {
+                alert('Please enter both a variable name and dropdown options.');
+                return;
+            }
+
+            const optionsArray = optionsText.split('\n').filter(option => option.trim() !== '');
+
+            addTask(variableName, optionsArray);
+            saveTasks();
+
+            // Clear input fields after creation
+            document.getElementById('variableName').value = '';
+            document.getElementById('dropdownOptions').value = '';
+        }
+
+        function addTask(variableName, optionsArray) {
+            const taskContainer = document.getElementById('taskContainer');
+            const taskDiv = document.createElement('div');
+            taskDiv.className = 'task';
+
+            const nameLabel = document.createElement('strong');
+            nameLabel.textContent = variableName + ': ';
+            taskDiv.appendChild(nameLabel);
+
+            const select = document.createElement('select');
+            optionsArray.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.onchange = function() {
+                if (checkbox.checked) {
+                    taskDiv.classList.add('completed');
+                } else {
+                    taskDiv.classList.remove('completed');
+                }
+                saveTasks();
+            };
+
+            const editButton = document.createElement('button');
+            editButton.textContent = 'Edit';
+            editButton.onclick = function() {
+                const newValue = prompt('Enter new value:', select.value);
+                if (newValue) {
+                    select.value = newValue;
+                    saveTasks();
+                }
+            };
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.onclick = function() {
+                taskContainer.removeChild(taskDiv);
+                saveTasks();
+            };
+
+            taskDiv.appendChild(select);
+            taskDiv.appendChild(checkbox);
+            taskDiv.appendChild(editButton);
+            taskDiv.appendChild(deleteButton);
+            taskContainer.appendChild(taskDiv);
+        }
+
+        function saveTasks() {
+            const taskContainer = document.getElementById('taskContainer');
+            const tasks = Array.from(taskContainer.children).map(taskDiv => {
+                const variableName = taskDiv.querySelector('strong').textContent.slice(0, -2);
+                const options = Array.from(taskDiv.querySelector('select').options).map(option => option.value);
+                const completed = taskDiv.classList.contains('completed');
+                return { variableName, options, completed };
+            });
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        function loadTasks() {
+            const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+            tasks.forEach(task => {
+                addTask(task.variableName, task.options);
+                const taskDiv = document.getElementById('taskContainer').lastChild;
+                if (task.completed) {
+                    taskDiv.classList.add('completed');
+                    taskDiv.querySelector('input[type="checkbox"]').checked = true;
+                }
+            });
+        }
+    </script>
+</body>
+</html>

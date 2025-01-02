@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CC LOGIN Credentials</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --background-color: #ecf0f1;
+            --text-color: #34495e;
+            --input-background: #fff;
+            --table-header-bg: #3498db;
+            --table-header-color: #fff;
+            --table-row-even: #f8f9fa;
+            --table-row-odd: #fff;
+            --table-border: #e0e0e0;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: var(--secondary-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--table-border);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .table-container {
+            flex: 1;
+            overflow: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: var(--table-header-bg);
+            color: var(--table-header-color);
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 14px;
+            position: sticky;
+            top: 0;
+        }
+        tr:nth-child(even) {
+            background-color: var(--table-row-even);
+        }
+        tr:nth-child(odd) {
+            background-color: var(--table-row-odd);
+        }
+        td textarea {
+            border: none;
+            background-color: transparent;
+            width: 100%;
+            padding: 8px 0;
+            margin: 0;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 60px;
+        }
+        td textarea:focus {
+            outline: 2px solid var(--primary-color);
+            border-radius: 4px;
+        }
+        #searchInput {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CC Login Credentials</h1>
+        <div class="input-area">
+            <textarea id="csvInput" rows="3" placeholder="Enter comma-separated values here"></textarea>
+            <button onclick="appendToTable()">Append to Table</button>
+        </div>
+        <input type="text" id="searchInput" placeholder="Search table..." onkeyup="searchTable()">
+        <div class="table-container">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>CC_POD</th>
+                        <th>CC_URL</th>
+                        <th>Username</th>
+                        <th>Password</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Load data from local storage when the page loads
+        window.onload = function() {
+            const storedData = localStorage.getItem('permanentCsvData');
+            if (storedData) {
+                createTable(storedData);
+            }
+        };
+
+        function appendToTable() {
+            const input = document.getElementById('csvInput').value.trim();
+            if (input) {
+                const existingData = localStorage.getItem('permanentCsvData') || '';
+                const newData = existingData ? existingData + '\n' + input : input;
+                createTable(newData);
+                document.getElementById('csvInput').value = ''; // Clear input after appending
+            }
+        }
+
+        function createTable(csvData) {
+            const rows = csvData.split('\n');
+            const tableBody = document.querySelector('#dataTable tbody');
+            tableBody.innerHTML = '';
+
+            rows.forEach(row => {
+                const columns = row.split(',');
+                if (columns.length === 4) {
+                    const tr = document.createElement('tr');
+                    columns.forEach((column, index) => {
+                        const td = document.createElement('td');
+                        const textarea = document.createElement('textarea');
+                        if (index === 1 || index === 2) { // CC_URL or Username
+                            textarea.value = column.replace(/[{}]/g, '').split('|').join('\n');
+                        } else {
+                            textarea.value = column.trim();
+                        }
+                        textarea.addEventListener('change', updateLocalStorage);
+                        td.appendChild(textarea);
+                        tr.appendChild(td);
+                    });
+                    tableBody.appendChild(tr);
+                }
+            });
+
+            // Save data to local storage
+            localStorage.setItem('permanentCsvData', csvData);
+        }
+
+        function updateLocalStorage() {
+            const rows = document.querySelectorAll('#dataTable tbody tr');
+            let csvData = '';
+            rows.forEach(row => {
+                const textareas = row.querySelectorAll('textarea');
+                const rowData = Array.from(textareas).map((textarea, index) => {
+                    if (index === 1 || index === 2) { // CC_URL or Username
+                        return '{' + textarea.value.split('\n').join('|') + '}';
+                    }
+                    return textarea.value;
+                }).join(',');
+                csvData += rowData + '\n';
+            });
+            localStorage.setItem('permanentCsvData', csvData.trim());
+        }
+
+        function searchTable() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById('dataTable');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                const td = tr[i].getElementsByTagName('td');
+                let txtValue = '';
+                for (let j = 0; j < td.length; j++) {
+                    txtValue += td[j].getElementsByTagName('textarea')[0].value + ' ';
+                }
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = '';
+                } else {
+                    tr[i].style.display = 'none';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,415 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Allocation Table</title>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .input-container {
+            margin: 20px 0;
+        }
+        #csvInput {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        .process-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+        }
+        .process-btn:hover {
+            background-color: #45a049;
+        }
+        #resourceTable_wrapper {
+            margin-top: 20px;
+            display: none;
+        }
+        table.dataTable thead th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            padding-bottom: 10px;
+        }
+        .dataTables_filter {
+            margin-bottom: 15px;
+        }
+        .vm-list {
+            white-space: pre-wrap;
+            min-width: 200px;
+            font-family: monospace;
+            line-height: 1.4;
+        }
+        .clear-btn {
+            background-color: #f44336;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .clear-btn:hover {
+            background-color: #da190b;
+        }
+        .button-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .column-filter {
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        thead input {
+            width: 100%;
+        }
+        .filter-header {
+            padding: 8px !important;
+        }
+        #columnToggles {
+            display: none;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .toggle-group {
+            display: inline-block;
+            margin: 5px 10px;
+        }
+        .select-all-btn {
+            margin: 0 5px;
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .select-all-btn:hover {
+            background-color: #0056b3;
+        }
+        tfoot {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        tfoot td {
+            padding: 10px !important;
+            border-top: 2px solid #ddd !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Resource Allocation Table</h1>
+        
+        <div class="input-container">
+            <textarea id="csvInput" placeholder="Paste your CSV data here..."></textarea>
+            <div class="button-container">
+                <button class="process-btn" onclick="processCSV()">Process CSV</button>
+                <button class="clear-btn" onclick="clearData()">Clear Data</button>
+            </div>
+        </div>
+
+        <div id="columnToggles">
+            <button class="select-all-btn" onclick="selectAllColumns(true)">Select All</button>
+            <button class="select-all-btn" onclick="selectAllColumns(false)">Deselect All</button>
+            <div id="toggleGroups"></div>
+        </div>
+
+        <table id="resourceTable" class="display" style="width:100%">
+            <thead>
+                <tr id="header-row"></tr>
+                <tr id="filter-row" class="filter-header"></tr>
+            </thead>
+            <tfoot>
+                <tr id="footer-row"></tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script>
+        let dataTable;
+
+        function isNumeric(str) {
+            if (typeof str != "string") return false;
+            return !isNaN(str) && !isNaN(parseFloat(str));
+        }
+
+        function detectNumericColumns(data, headers) {
+            const numericColumns = new Array(headers.length).fill(true);
+            
+            for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+                for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
+                    const value = data[rowIndex][colIndex].trim();
+                    if (value !== '' && !isNumeric(value)) {
+                        numericColumns[colIndex] = false;
+                        break;
+                    }
+                }
+            }
+            
+            return numericColumns;
+        }
+
+        function calculateColumnTotals(data, numericColumns) {
+            const totals = new Array(numericColumns.length).fill(0);
+            
+            for (let colIndex = 0; colIndex < numericColumns.length; colIndex++) {
+                if (numericColumns[colIndex]) {
+                    for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
+                        const value = data[rowIndex][colIndex].trim();
+                        if (value !== '') {
+                            totals[colIndex] += parseFloat(value);
+                        }
+                    }
+                }
+            }
+            
+            return totals;
+        }
+
+        function setupFooterRow(headers, totals, numericColumns) {
+            const footerRow = document.querySelector('#resourceTable tfoot tr');
+            footerRow.innerHTML = '';
+            
+            headers.forEach((header, index) => {
+                const td = document.createElement('td');
+                if (numericColumns[index]) {
+                    td.textContent = totals[index].toFixed(2);
+                } else if (index === 0) {
+                    td.textContent = 'Total:';
+                }
+                footerRow.appendChild(td);
+            });
+        }
+
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            if (lines.length < 2) {
+                alert('CSV must contain at least headers and one row of data');
+                return null;
+            }
+
+            const headers = lines[0].split(',').map(header => header.trim());
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const row = parseCSVLine(lines[i]);
+                if (row.length === headers.length) {
+                    data.push(row);
+                }
+            }
+
+            return { headers, data };
+        }
+
+        function parseCSVLine(line) {
+            const row = [];
+            let inBrackets = false;
+            let currentField = '';
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '[') {
+                    inBrackets = true;
+                }
+                else if (char === ']') {
+                    inBrackets = false;
+                }
+                else if (char === ',' && !inBrackets) {
+                    row.push(currentField.trim());
+                    currentField = '';
+                    continue;
+                }
+                currentField += char;
+            }
+            
+            row.push(currentField.trim());
+            return row;
+        }
+
+        function formatVMList(vmList) {
+            return vmList.replace(/[\[\]]/g, '')
+                        .split(',')
+                        .map(vm => vm.trim())
+                        .filter(vm => vm.length > 0)
+                        .join('\n');
+        }
+
+        function createColumnToggles(headers) {
+            const togglesContainer = document.getElementById('toggleGroups');
+            togglesContainer.innerHTML = '';
+            
+            headers.forEach((header, index) => {
+                const toggleGroup = document.createElement('div');
+                toggleGroup.className = 'toggle-group';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `toggle-${index}`;
+                checkbox.checked = true;
+                checkbox.onclick = () => toggleColumn(index);
+                
+                const label = document.createElement('label');
+                label.htmlFor = `toggle-${index}`;
+                label.textContent = header;
+                
+                toggleGroup.appendChild(checkbox);
+                toggleGroup.appendChild(label);
+                togglesContainer.appendChild(toggleGroup);
+            });
+            
+            document.getElementById('columnToggles').style.display = 'block';
+        }
+
+        function toggleColumn(index) {
+            const column = dataTable.column(index);
+            column.visible(!column.visible());
+        }
+
+        function selectAllColumns(visible) {
+            const checkboxes = document.querySelectorAll('.toggle-group input[type="checkbox"]');
+            checkboxes.forEach((checkbox, index) => {
+                checkbox.checked = visible;
+                dataTable.column(index).visible(visible);
+            });
+        }
+
+        function setupTableHeaders(headers) {
+            const headerRow = document.getElementById('header-row');
+            const filterRow = document.getElementById('filter-row');
+            
+            headerRow.innerHTML = '';
+            filterRow.innerHTML = '';
+
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+
+                const filterTh = document.createElement('th');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = `Filter ${header}`;
+                input.className = 'column-filter';
+                filterTh.appendChild(input);
+                filterRow.appendChild(filterTh);
+            });
+        }
+
+        function initializeDataTable(parsedData) {
+            if (dataTable) {
+                dataTable.destroy();
+            }
+
+            setupTableHeaders(parsedData.headers);
+
+            const vmListColumnIndex = parsedData.headers.findIndex(header => 
+                header.toLowerCase().includes('vm') || 
+                header.toLowerCase().includes('list')
+            );
+
+            const numericColumns = detectNumericColumns(parsedData.data, parsedData.headers);
+            const totals = calculateColumnTotals(parsedData.data, numericColumns);
+            
+            setupFooterRow(parsedData.headers, totals, numericColumns);
+
+            dataTable = $('#resourceTable').DataTable({
+                data: parsedData.data,
+                pageLength: 25,
+                dom: 'Bfrtip',
+                buttons: ['copy', 'csv', 'excel'],
+                order: [[0, 'asc']],
+                orderCellsTop: true,
+                columnDefs: [{
+                    targets: vmListColumnIndex,
+                    render: function(data, type, row) {
+                        if (type === 'display' && data.includes('[')) {
+                            return '<div class="vm-list">' + formatVMList(data) + '</div>';
+                        }
+                        return data;
+                    }
+                }],
+                initComplete: function () {
+                    var api = this.api();
+                    
+                    api.columns().every(function () {
+                        var column = this;
+                        $('input', $('.filter-header th').eq(column.index()))
+                            .on('keyup change', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                    });
+                },
+                footerCallback: function(row, data, start, end, display) {
+                    const api = this.api();
+                    const filteredData = api.rows({ search: 'applied' }).data().toArray();
+                    const filteredTotals = calculateColumnTotals(filteredData, numericColumns);
+                    setupFooterRow(parsedData.headers, filteredTotals, numericColumns);
+                }
+            });
+
+            $('#resourceTable_wrapper').show();
+            createColumnToggles(parsedData.headers);
+        }
+
+        function processCSV() {
+            const csvText = document.getElementById('csvInput').value;
+            if (csvText.trim() === '') {
+                alert('Please paste CSV data first');
+                return;
+            }
+            const parsedData = parseCSV(csvText);
+            if (parsedData) {
+                initializeDataTable(parsedData);
+            }
+        }
+
+        function clearData() {
+            document.getElementById('csvInput').value = '';
+            if (dataTable) {
+                dataTable.clear().draw();
+                $('.column-filter').val('');
+                $('#resourceTable_wrapper').hide();
+                $('#columnToggles').hide();
+            }
+        }
+    </script>
+</body>
+</html>

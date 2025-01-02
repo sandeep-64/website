@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consistent Horizontal Sub-boxes Tree Chart</title>
+    <style>
+        .tree {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+        }
+
+        .node {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px;
+            position: relative;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            min-width: 100px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .children {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .line {
+            width: 2px;
+            height: 20px;
+            background-color: #ccc;
+            position: absolute;
+            left: 50%;
+            top: -10px;
+            transform: translateY(-100%);
+        }
+
+        .description {
+            display: none;
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #555;
+            border-top: 1px solid #ccc;
+            padding-top: 5px;
+        }
+
+        button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <button onclick="downloadHTML()">Download as HTML</button>
+
+    <div class="tree" id="tree">
+        <div class="node" id="root">
+            <div contenteditable="true" onblur="saveNodeName('root')">pod.yml</div>
+            <button onclick="addNode('root')">Sub</button>
+            <button onclick="toggleDescription('root')">Des</button>
+            <button onclick="toggleChildren('root')">+</button>
+            <div class="description" contenteditable="true" spellcheck="true" autocorrect="on" autocapitalize="sentences" onblur="saveDescription('root')">Description...</div>
+            <div class="children" id="root-children">
+                <div class="node" id="node-A">
+                    <div contenteditable="true" onblur="saveNodeName('node-A')">A</div>
+                    <button onclick="addNode('node-A')">Sub</button>
+                    <button onclick="removeNode('node-A')">RM</button>
+                    <button onclick="toggleDescription('node-A')">Des</button>
+                    <button onclick="toggleChildren('node-A')">+</button>
+                    <div class="description" contenteditable="true" onblur="saveDescription('node-A')">Description...</div>
+                    <div class="line"></div>
+                    <div class="children"></div>
+                </div>
+                <div class="node" id="node-B">
+                    <div contenteditable="true" onblur="saveNodeName('node-B')">B</div>
+                    <button onclick="addNode('node-B')">Sub</button>
+                    <button onclick="removeNode('node-B')">RM</button>
+                    <button onclick="toggleDescription('node-B')">Des</button>
+                    <button onclick="toggleChildren('node-B')">+</button>
+                    <div class="description" contenteditable="true" onblur="saveDescription('node-B')">Description...</div>
+                    <div class="line"></div>
+                    <div class="children"></div>
+                </div>
+                <div class="node" id="node-C">
+                    <div contenteditable="true" onblur="saveNodeName('node-C')">C</div>
+                    <button onclick="addNode('node-C')">Sub</button>
+                    <button onclick="removeNode('node-C')">RM</button>
+                    <button onclick="toggleDescription('node-C')">Des</button>
+                    <button onclick="toggleChildren('node-C')">+</button>
+                    <div class="description" contenteditable="true" onblur="saveDescription('node-C')">Description...</div>
+                    <div class="line"></div>
+                    <div class="children"></div>
+                </div>
+                <div class="node" id="node-D">
+                    <div contenteditable="true" onblur="saveNodeName('node-D')">D</div>
+                    <button onclick="addNode('node-D')">Sub</button>
+                    <button onclick="removeNode('node-D')">RM</button>
+                    <button onclick="toggleDescription('node-D')">Des</button>
+                    <button onclick="toggleChildren('node-D')">+</button>
+                    <div class="description" contenteditable="true" onblur="saveDescription('node-D')">Description...</div>
+                    <div class="line"></div>
+                    <div class="children"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let nodeId = 5; // Starting ID after A, B, C, D
+
+        function saveNodeName(nodeId) {
+            const nodeElement = document.getElementById(nodeId).querySelector('div[contenteditable="true"]');
+            if (nodeElement) {
+                try {
+                    localStorage.setItem(`name-${nodeId}`, nodeElement.textContent.trim());
+                    console.log(`Saved name for ${nodeId}: ${nodeElement.textContent.trim()}`);
+                } catch (error) {
+                    console.error(`Error saving name for ${nodeId}:`, error);
+                }
+            }
+        }
+
+        function saveDescription(nodeId) {
+            const descriptionElement = document.getElementById(nodeId).querySelector('.description');
+            if (descriptionElement) {
+                try {
+                    localStorage.setItem(`desc-${nodeId}`, descriptionElement.textContent.trim());
+                    console.log(`Saved description for ${nodeId}: ${descriptionElement.textContent.trim()}`);
+                } catch (error) {
+                    console.error(`Error saving description for ${nodeId}:`, error);
+                }
+            }
+        }
+
+        function loadNodeNames() {
+            document.querySelectorAll('.node').forEach(node => {
+                const nodeId = node.id;
+                const savedName = localStorage.getItem(`name-${nodeId}`);
+                const savedDesc = localStorage.getItem(`desc-${nodeId}`);
+                if (savedName) {
+                    node.querySelector('div[contenteditable="true"]').textContent = savedName;
+                    console.log(`Loaded name for ${nodeId}: ${savedName}`);
+                }
+                if (savedDesc) {
+                    node.querySelector('.description').textContent = savedDesc;
+                    console.log(`Loaded description for ${nodeId}: ${savedDesc}`);
+                }
+            });
+        }
+
+        function addNode(parentId) {
+            const parentElement = document.getElementById(parentId);
+            const childrenContainer = parentElement.querySelector('.children');
+            const newNodeId = `node-${nodeId++}`;
+            const newNode = document.createElement('div');
+            newNode.className = 'node';
+            newNode.id = newNodeId;
+            newNode.innerHTML = `
+                <div contenteditable="true" onblur="saveNodeName('${newNodeId}')">New Node</div>
+                <button onclick="addNode('${newNodeId}')">Sub</button>
+                <button onclick="removeNode('${newNodeId}')">RM</button>
+                <button onclick="toggleDescription('${newNodeId}')">Des</button>
+                <button onclick="toggleChildren('${newNodeId}')">+</button>
+                <div class="description" contenteditable="true" onblur="saveDescription('${newNodeId}')">Description...</div>
+                <div class="line"></div>
+                <div class="children"></div>
+            `;
+            childrenContainer.appendChild(newNode);
+            saveNodeName(newNodeId); // Auto-save the newly created node
+            saveDescription(newNodeId); // Auto-save the default description
+        }
+
+        function removeNode(nodeId) {
+            const nodeElement = document.getElementById(nodeId);
+            if (nodeElement) {
+                nodeElement.parentNode.removeChild(nodeElement);
+                localStorage.removeItem(`name-${nodeId}`);
+                localStorage.removeItem(`desc-${nodeId}`);
+                console.log(`Removed node ${nodeId} and its saved data`);
+            }
+        }
+
+        function toggleDescription(nodeId) {
+            const descriptionElement = document.getElementById(nodeId).querySelector('.description');
+            if (descriptionElement) {
+                descriptionElement.style.display = descriptionElement.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function toggleChildren(nodeId) {
+            const childrenContainer = document.getElementById(nodeId).querySelector('.children');
+            const toggleButton = document.getElementById(nodeId).querySelector('button:last-of-type');
+            if (childrenContainer) {
+                if (childrenContainer.style.display === 'none') {
+                    childrenContainer.style.display = 'flex';
+                    toggleButton.textContent = '-';
+                } else {
+                    childrenContainer.style.display = 'none';
+                    toggleButton.textContent = '+';
+                }
+            }
+        }
+
+        function downloadHTML() {
+            const treeHTML = document.getElementById('tree').outerHTML;
+            const scriptContent = `
+                <script>
+                    ${saveNodeName.toString()}
+                    ${saveDescription.toString()}
+                    ${loadNodeNames.toString()}
+                    ${addNode.toString()}
+                    ${removeNode.toString()}
+                    ${toggleDescription.toString()}
+                    ${toggleChildren.toString()}
+                    window.onload = function() {
+                        ${loadNodeNames.name}();
+                    };
+                <\/script>
+            `;
+            const fullHTML = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Tree Snapshot</title>
+                    <style>
+                        ${document.querySelector('style').innerHTML}
+                    </style>
+                </head>
+                <body>
+                    ${treeHTML}
+                    ${scriptContent}
+                </body>
+                </html>
+            `;
+            const blob = new Blob([fullHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'tree_snapshot.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Load saved node names and descriptions when the page loads
+        window.onload = loadNodeNames;
+    </script>
+</body>
+</html>

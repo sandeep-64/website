@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV and Data Converter</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 10px;
+            width: calc(100% - 40px);
+            height: 45%;
+            overflow-y: auto;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #007acc;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: none;
+            font-family: inherit;
+        }
+        button {
+            background-color: #007acc;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-right: 5px;
+        }
+        button:hover {
+            background-color: #005f99;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        #csvOutput {
+            margin-top: 20px;
+            width: 100%;
+            height: 100px;
+            resize: none;
+        }
+        .checkbox-container {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- CSV to Table Section -->
+    <div class="container">
+        <h1>CSV to Table Converter</h1>
+        <textarea id="csvData" placeholder="Enter CSV data here..."></textarea>
+        <div class="button-group">
+            <button onclick="convertCSV()">Convert to Table</button>
+            <button onclick="showCSV()">Show as CSV</button>
+            <button onclick="swapColumns()">Swap Columns</button>
+            <button onclick="addEntry()">Add Entry</button>
+            <button onclick="removeColumns()">Remove Columns</button>
+        </div>
+        <div id="checkboxContainer" class="checkbox-container"></div>
+        <div id="tableContainer"></div>
+        <textarea id="csvOutput" placeholder="CSV output will appear here..." readonly></textarea>
+    </div>
+
+    <!-- Line to Horizontal Converter Section -->
+    <div class="container">
+        <h1>Data Converter</h1>
+        <textarea id="inputText" placeholder="Enter your data here..."></textarea>
+        <div class="button-group">
+            <button onclick="convertToHorizontal(',')">To Horizontal (,)</button>
+            <button onclick="convertToHorizontal(':')">To Horizontal (:)</button>
+            <button onclick="convertToLine()">To Line</button>
+        </div>
+        <textarea id="outputText" placeholder="Converted data will appear here..." readonly></textarea>
+    </div>
+
+    <script>
+        let currentRows = []; // Store the current rows for CSV output
+
+        function convertCSV() {
+            const csvData = document.getElementById('csvData').value.trim();
+            if (!csvData) {
+                alert("Please enter some CSV data.");
+                return;
+            }
+            currentRows = csvData.split('\n');
+            const table = document.createElement('table');
+            const checkboxContainer = document.getElementById('checkboxContainer');
+            checkboxContainer.innerHTML = ''; // Clear previous checkboxes
+
+            currentRows[0].split(',').forEach((column, index) => {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `column-${index}`;
+                checkbox.checked = true;
+                checkbox.onchange = updateTable; // Update table on checkbox change
+                const label = document.createElement('label');
+                label.textContent = `Column ${index + 1} `;
+                label.htmlFor = checkbox.id;
+                checkboxContainer.appendChild(label);
+                checkboxContainer.appendChild(checkbox);
+            });
+            updateTable(); // Initial table update
+        }
+
+        function updateTable() {
+            const table = document.createElement('table');
+            const headerRow = document.createElement('tr');
+            const checkboxes = document.querySelectorAll('#checkboxContainer input[type="checkbox"]');
+
+            currentRows[0].split(',').forEach((column, index) => {
+                if (checkboxes[index].checked) {
+                    const headerCell = document.createElement('th');
+                    headerCell.textContent = column;
+                    headerRow.appendChild(headerCell);
+                }
+            });
+            table.appendChild(headerRow);
+
+            currentRows.slice(1).forEach((row) => {
+                const rowElement = document.createElement('tr');
+                row.split(',').forEach((column, index) => {
+                    if (checkboxes[index].checked) {
+                        const columnElement = document.createElement('td');
+                        columnElement.textContent = column;
+                        rowElement.appendChild(columnElement);
+                    }
+                });
+                table.appendChild(rowElement);
+            });
+
+            const tableContainer = document.getElementById('tableContainer');
+            tableContainer.innerHTML = '';
+            tableContainer.appendChild(table);
+        }
+
+        function removeColumns() {
+            const checkboxes = document.querySelectorAll('#checkboxContainer input[type="checkbox"]');
+            const newRows = currentRows.map(row => {
+                return row.split(',').filter((_, index) => checkboxes[index].checked).join(',');
+            });
+            currentRows = newRows;
+            updateTable();
+        }
+
+        function showCSV() {
+            const table = document.querySelector('#tableContainer table');
+            if (!table) {
+                alert('No table available to show as CSV.');
+                return;
+            }
+            const rows = Array.from(table.rows);
+            const csvContent = rows.map(row => {
+                const cols = Array.from(row.cells).map(cell => cell.textContent);
+                return cols.join(',');
+            }).join('\n');
+            document.getElementById('csvOutput').value = csvContent;
+        }
+
+        function swapColumns() {
+            const table = document.querySelector('#tableContainer table');
+            if (!table) {
+                alert('No table available to swap columns.');
+                return;
+            }
+            const rows = Array.from(table.rows);
+            rows.forEach(row => {
+                const cells = Array.from(row.cells);
+                if (cells.length >= 2) {
+                    const temp = cells[0].textContent;
+                    cells[0].textContent = cells[1].textContent;
+                    cells[1].textContent = temp;
+                }
+            });
+        }
+
+        function addEntry() {
+            const table = document.querySelector('#tableContainer table');
+            if (!table) {
+                alert('No table available to add entries.');
+                return;
+            }
+            const rows = Array.from(table.rows);
+            rows.forEach(row => {
+                const newCell = row.insertCell(0);
+                newCell.textContent = '.i.iotcc.cisco.com,A';
+            });
+        }
+
+        function convertToHorizontal(separator) {
+            const inputText = document.getElementById('inputText').value;
+            const lines = inputText.split('\n').filter(line => line.trim() !== '');
+            document.getElementById('outputText').value = lines.join(separator);
+        }
+
+        function convertToLine() {
+            const inputText = document.getElementById('inputText').value;
+            const items = inputText.split(/[:,]/).filter(item => item.trim() !== '');
+            document.getElementById('outputText').value = items.join('\n');
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Comparison Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #444;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .log-section {
+            width: 48%;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 20px 0;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .result-section div {
+            width: 48%;
+        }
+        .duplicate {
+            background-color: yellow;
+            padding: 5px;
+            border-radius: 3px;
+            margin-bottom: 2px;
+        }
+        .unique {
+            background-color: lightblue;
+            padding: 5px;
+            border-radius: 3px;
+            margin-bottom: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Log Comparison Tool</h1>
+    <div class="container">
+        <div class="log-section">
+            <h2>Log Section 1</h2>
+            <textarea id="log1" placeholder="Enter log data here..."></textarea>
+        </div>
+        <div class="log-section">
+            <h2>Log Section 2</h2>
+            <textarea id="log2" placeholder="Enter log data here..."></textarea>
+        </div>
+    </div>
+    <button onclick="compareLogs()">Compare Logs</button>
+    <h2>Comparison Result</h2>
+    <div class="result-section">
+        <div id="result1"></div>
+        <div id="result2"></div>
+    </div>
+
+    <script>
+        function compareLogs() {
+            const log1 = document.getElementById('log1').value.trim().split('\\n');
+            const log2 = document.getElementById('log2').value.trim().split('\\n');
+            const resultDiv1 = document.getElementById('result1');
+            const resultDiv2 = document.getElementById('result2');
+            resultDiv1.innerHTML = '';
+            resultDiv2.innerHTML = '';
+
+            const maxLength = Math.max(log1.length, log2.length);
+            for (let i = 0; i < maxLength; i++) {
+                const log1Entry = log1[i] || '';
+                const log2Entry = log2[i] || '';
+                const div1 = document.createElement('div');
+                const div2 = document.createElement('div');
+                div1.textContent = log1Entry;
+                div2.textContent = log2Entry;
+
+                if (log1Entry === log2Entry) {
+                    div1.className = 'duplicate';
+                    div2.className = 'duplicate';
+                } else {
+                    div1.className = 'unique';
+                    div2.className = 'unique';
+                }
+
+                resultDiv1.appendChild(div1);
+                resultDiv2.appendChild(div2);
+            }
+        }
+    </script>
+</body>
+</html>

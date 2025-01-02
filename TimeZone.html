@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timezone Converter - IST to PST</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f8f9fa;
+            margin: 0;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 300px;
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: #343a40;
+        }
+        .time-display {
+            font-size: 1.5em;
+            margin: 10px 0;
+            color: #495057;
+        }
+        .converter {
+            margin-top: 20px;
+        }
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            margin: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        select {
+            padding: 5px;
+            margin: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 5px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #refreshButton {
+            background-color: #28a745;
+            margin-top: 20px;
+        }
+        #refreshButton:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Current Time in IST & PST</h2>
+    <div class="time-display" id="currentIST"></div>
+    <div class="time-display" id="currentPST"></div>
+
+    <div class="converter">
+      <h3>Convert IST to PST</h3>
+      <input type="number" id="istHour" placeholder="Hour (IST)" min="1" max="12">
+      <input type="number" id="istMinute" placeholder="Minute (IST)" min="0" max="59">
+      <select id="istPeriod">
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+      <button onclick="convertISTtoPST()">Convert</button>
+      <div id="conversionResultISTtoPST"></div>
+
+      <h3>Convert PST to IST</h3>
+      <input type="number" id="pstHour" placeholder="Hour (PST)" min="1" max="12">
+      <input type="number" id="pstMinute" placeholder="Minute (PST)" min="0" max="59">
+      <select id="pstPeriod">
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+      <button onclick="convertPSTtoIST()">Convert</button>
+      <div id="conversionResultPSTtoIST"></div>
+    </div>
+    
+    <button id="refreshButton" onclick="refreshConverter()">Refresh</button>
+  </div>
+  <script>
+    function updateCurrentTime() {
+        const optionsIST = { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        const optionsPST = { timeZone: 'America/Los_Angeles', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        
+        const istTime = new Intl.DateTimeFormat('en-US', optionsIST).format(new Date());
+        const pstTime = new Intl.DateTimeFormat('en-US', optionsPST).format(new Date());
+
+        document.getElementById('currentIST').textContent = 'IST: ' + istTime;
+        document.getElementById('currentPST').textContent = 'PST: ' + pstTime;
+    }
+
+    function convertISTtoPST() {
+        const istHour = parseInt(document.getElementById('istHour').value);
+        const istMinute = parseInt(document.getElementById('istMinute').value);
+        const istPeriod = document.getElementById('istPeriod').value;
+
+        if (isNaN(istHour) || istHour < 1 || istHour > 12 || isNaN(istMinute) || istMinute < 0 || istMinute > 59) {
+            document.getElementById('conversionResultISTtoPST').textContent = 'Please enter valid time.';
+            return;
+        }
+
+        let istHour24 = istHour;
+        if (istPeriod === 'PM' && istHour !== 12) istHour24 += 12;
+        if (istPeriod === 'AM' && istHour === 12) istHour24 = 0;
+
+        let totalMinutes = istHour24 * 60 + istMinute - 12 * 60 - 30;
+        if (totalMinutes < 0) totalMinutes += 24 * 60;
+
+        const pstHour = Math.floor(totalMinutes / 60) % 24;
+        const pstMinute = totalMinutes % 60;
+        const pstPeriod = pstHour >= 12 ? 'PM' : 'AM';
+        const pstHour12 = pstHour % 12 || 12;
+
+        document.getElementById('conversionResultISTtoPST').textContent = 
+            `PST: ${pstHour12}:${pstMinute.toString().padStart(2, '0')} ${pstPeriod}`;
+    }
+
+    function convertPSTtoIST() {
+        const pstHour = parseInt(document.getElementById('pstHour').value);
+        const pstMinute = parseInt(document.getElementById('pstMinute').value);
+        const pstPeriod = document.getElementById('pstPeriod').value;
+
+        if (isNaN(pstHour) || pstHour < 1 || pstHour > 12 || isNaN(pstMinute) || pstMinute < 0 || pstMinute > 59) {
+            document.getElementById('conversionResultPSTtoIST').textContent = 'Please enter valid time.';
+            return;
+        }
+
+        let pstHour24 = pstHour;
+        if (pstPeriod === 'PM' && pstHour !== 12) pstHour24 += 12;
+        if (pstPeriod === 'AM' && pstHour === 12) pstHour24 = 0;
+
+        let totalMinutes = pstHour24 * 60 + pstMinute + 12 * 60 + 30;
+        totalMinutes %= 24 * 60;
+
+        const istHour = Math.floor(totalMinutes / 60);
+        const istMinute = totalMinutes % 60;
+        const istPeriod = istHour >= 12 ? 'PM' : 'AM';
+        const istHour12 = istHour % 12 || 12;
+
+        document.getElementById('conversionResultPSTtoIST').textContent = 
+            `IST: ${istHour12}:${istMinute.toString().padStart(2, '0')} ${istPeriod}`;
+    }
+
+    function refreshConverter() {
+        // Clear input fields
+        document.getElementById('istHour').value = '';
+        document.getElementById('istMinute').value = '';
+        document.getElementById('istPeriod').value = 'AM';
+        document.getElementById('pstHour').value = '';
+        document.getElementById('pstMinute').value = '';
+        document.getElementById('pstPeriod').value = 'AM';
+
+        // Clear conversion results
+        document.getElementById('conversionResultISTtoPST').textContent = '';
+        document.getElementById('conversionResultPSTtoIST').textContent = '';
+    }
+
+    setInterval(updateCurrentTime, 1000);
+    updateCurrentTime();
+  </script>
+</body>
+</html>

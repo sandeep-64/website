@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SME Application Management</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --background-color: #f4f6f7;
+            --text-color: #2c3e50;
+            --border-color: #bdc3c7;
+            --white: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: var(--white);
+            text-align: center;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .search-section {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-input {
+            flex-grow: 1;
+            padding: 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .exact-match-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .input-area {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Consolas', monospace;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-delete {
+            background-color: #e74c3c;
+            color: var(--white);
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+
+        .sme-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: var(--white);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .sme-table thead {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        .sme-table th,
+        .sme-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sme-table tbody tr:hover {
+            background-color: #f1f3f5;
+        }
+
+        .editable-cell:focus {
+            outline: 2px solid var(--primary-color);
+            background-color: #f0f4f8;
+        }
+
+        .highlight {
+            background-color: #ffd700;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>SME Application Management</h1>
+        </header>
+
+        <div class="search-section">
+            <input 
+                type="text" 
+                id="searchInput" 
+                class="search-input" 
+                placeholder="Search applications or SMEs..."
+                onkeyup="searchEntries()"
+            >
+            <div class="exact-match-container">
+                <input 
+                    type="checkbox" 
+                    id="exactMatch" 
+                    onchange="searchEntries()"
+                >
+                <label for="exactMatch">Exact Match</label>
+            </div>
+        </div>
+
+        <textarea 
+            id="inputArea" 
+            class="input-area" 
+            placeholder="Format: Application Name, SME (one entry per line)"
+        ></textarea>
+        
+        <button 
+            onclick="addEntries()" 
+            class="btn btn-primary"
+        >
+            <i class="fas fa-plus"></i> Add Entries
+        </button>
+
+        <table class="sme-table">
+            <thead>
+                <tr>
+                    <th>SMEs</th>
+                    <th>Application Name</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Dynamically populated entries -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const tableBody = document.getElementById('tableBody');
+        const inputArea = document.getElementById('inputArea');
+        const searchInput = document.getElementById('searchInput');
+        const exactMatchCheckbox = document.getElementById('exactMatch');
+
+        // Load existing entries from localStorage
+        function loadEntries() {
+            const entries = JSON.parse(localStorage.getItem('smeEntries')) || [];
+            entries.forEach(entry => addRow(entry.application, entry.sme));
+        }
+
+        // Add new entries
+        function addEntries() {
+            const lines = inputArea.value.trim().split('\n');
+            lines.forEach(line => {
+                const [application, sme] = line.split(',').map(item => item.trim());
+                if (application && sme) {
+                    addRow(application, sme);
+                }
+            });
+            inputArea.value = '';
+            saveEntries();
+        }
+
+        // Create and add a new row to the table
+        function addRow(application, sme) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td contenteditable="true" class="editable-cell" onblur="saveEntries()">${application}</td>
+                <td contenteditable="true" class="editable-cell" onblur="saveEntries()">${sme}</td>
+                <td>
+                    <button 
+                        class="btn btn-delete" 
+                        onclick="deleteRow(this)"
+                    >
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        }
+
+        // Delete a specific row
+        function deleteRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+            saveEntries();
+        }
+
+        // Save entries to localStorage
+        function saveEntries() {
+            const entries = Array.from(tableBody.querySelectorAll('tr')).map(row => {
+                const cells = row.querySelectorAll('td');
+                return {
+                    application: cells[0].innerText,
+                    sme: cells[1].innerText
+                };
+            });
+            localStorage.setItem('smeEntries', JSON.stringify(entries));
+        }
+
+        // Search and highlight entries
+        function searchEntries() {
+            const searchTerm = searchInput.value.trim().toLowerCase();
+            const isExactMatch = exactMatchCheckbox.checked;
+
+            tableBody.querySelectorAll('tr').forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td:not(:last-child)'));
+                let found = false;
+
+                cells.forEach(cell => {
+                    const cellText = cell.innerText.toLowerCase();
+                    
+                    // Reset cell content
+                    cell.innerHTML = cell.innerText;
+                    
+                    // Matching logic
+                    let matchFound = isExactMatch 
+                        ? cellText.split(/[\s,]+/).includes(searchTerm)
+                        : cellText.includes(searchTerm);
+
+                    // Highlight matching text
+                    if (matchFound && searchTerm) {
+                        const regex = new RegExp(`(${searchTerm})`, 'gi');
+                        cell.innerHTML = cell.innerText.replace(regex, '<span class="highlight">$1</span>');
+                    }
+
+                    found = found || matchFound;
+                });
+
+                row.style.display = found || !searchTerm ? '' : 'none';
+            });
+        }
+
+        // Initialize on page load
+        loadEntries();
+    </script>
+</body>
+</html>

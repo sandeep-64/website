@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collapsible Sections with Local Storage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        #sections-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .section {
+            border: 1px solid #ddd;
+            margin: 10px;
+            padding: 10px;
+            width: calc(33.33% - 20px);
+            box-sizing: border-box;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        .section:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .section-header {
+            cursor: pointer;
+            background-color: #f1f1f1;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+        }
+        .section-content {
+            display: none;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .edit-area {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+            padding: 10px;
+            border: 1px solid #ddd;
+            resize: vertical;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .controls input[type="text"], .controls button {
+            padding: 8px;
+            margin-right: 10px;
+        }
+        button {
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .delete-btn {
+            background-color: #f44336;
+        }
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+        .full-view-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #2196F3;
+            text-decoration: none;
+        }
+        .full-view-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Manage Your Sections</h1>
+    <div class="controls">
+        <input type="text" id="section-name" placeholder="Enter section name" />
+        <button onclick="addSection()">Add Section</button>
+        <input type="text" id="search-box" placeholder="Search sections..." oninput="searchSections()" />
+    </div>
+    <div id="sections-container"></div>
+
+    <script>
+        window.onload = loadSections;
+
+        function toggleSectionContent(sectionId) {
+            const content = document.getElementById(`content-${sectionId}`);
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function addSection() {
+            const sectionName = document.getElementById('section-name').value.trim();
+            if (sectionName === '') {
+                alert('Please enter a section name.');
+                return;
+            }
+
+            const sectionId = new Date().getTime();
+            const sectionData = { name: sectionName, content: '' };
+
+            localStorage.setItem(`section-${sectionId}`, JSON.stringify(sectionData));
+
+            renderSection(sectionId, sectionData);
+            document.getElementById('section-name').value = '';
+        }
+
+        function renderSection(sectionId, sectionData) {
+            const sectionContainer = document.getElementById('sections-container');
+
+            const section = document.createElement('div');
+            section.className = 'section';
+            section.id = `section-${sectionId}`;
+            section.innerHTML = `
+                <div class="section-header" onclick="toggleSectionContent(${sectionId})">
+                    <span ondblclick="editSectionName(event, ${sectionId})">${sectionData.name}</span>
+                    <input type="text" class="edit-name-input" style="display:none;" onblur="saveSectionName(event, ${sectionId})" />
+                    <button class="delete-btn" onclick="deleteSection(event, ${sectionId})">Delete</button>
+                </div>
+                <div class="section-content" id="content-${sectionId}">
+                    <textarea class="edit-area" placeholder="Enter your data here..." oninput="updateSectionContent(${sectionId}, this.value)">${sectionData.content}</textarea>
+                    <a href="view-section-upgrade.html?sectionId=${sectionId}&sectionName=${encodeURIComponent(sectionData.name)}" target="_blank" class="full-view-link">Open in Full View</a>
+                </div>
+            `;
+
+            sectionContainer.appendChild(section);
+        }
+
+        function editSectionName(event, sectionId) {
+            event.stopPropagation();
+            const span = event.target;
+            const input = span.nextElementSibling;
+            input.value = span.textContent;
+            span.style.display = 'none';
+            input.style.display = 'inline-block';
+            input.focus();
+        }
+
+        function saveSectionName(event, sectionId) {
+            const input = event.target;
+            const span = input.previousElementSibling;
+            const newName = input.value.trim();
+
+            if (newName === '') {
+                alert('Section name cannot be empty.');
+                input.focus();
+                return;
+            }
+
+            span.textContent = newName;
+            span.style.display = 'inline';
+            input.style.display = 'none';
+
+            const sectionData = JSON.parse(localStorage.getItem(`section-${sectionId}`));
+            sectionData.name = newName;
+            localStorage.setItem(`section-${sectionId}`, JSON.stringify(sectionData));
+        }
+
+        function updateSectionContent(sectionId, content) {
+            const sectionData = JSON.parse(localStorage.getItem(`section-${sectionId}`));
+            sectionData.content = content;
+            localStorage.setItem(`section-${sectionId}`, JSON.stringify(sectionData));
+        }
+
+        function deleteSection(event, sectionId) {
+            event.stopPropagation();
+            if (confirm('Are you sure you want to delete this section?')) {
+                localStorage.removeItem(`section-${sectionId}`);
+                document.getElementById(`section-${sectionId}`).remove();
+            }
+        }
+
+        function loadSections() {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('section-')) {
+                    const sectionData = JSON.parse(localStorage.getItem(key));
+                    const sectionId = key.split('-')[1];
+                    renderSection(sectionId, sectionData);
+                }
+            }
+        }
+
+        function searchSections() {
+            const query = document.getElementById('search-box').value.toLowerCase();
+            const sections = document.querySelectorAll('.section');
+
+            sections.forEach(section => {
+                const sectionName = section.querySelector('.section-header span').textContent.toLowerCase();
+                if (sectionName.includes(query)) {
+                    section.style.display = '';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

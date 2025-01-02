@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Code Snippet Manager</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --background-color: #f4f7fa;
+            --card-background: #ffffff;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --border-color: #ecf0f1;
+            --hover-color: #f1f3f4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            padding: 0 1rem;
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .input-section, .snippets-section {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+            font-family: 'Consolas', monospace;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            margin-right: 1rem;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .snippet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .snippet-card {
+            background-color: var(--hover-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .snippet-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .snippet-info {
+            flex: 1;
+            margin-right: 1rem;
+        }
+
+        .snippet-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .snippet-actions button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0.25rem;
+            border-radius: 50%;
+        }
+
+        .snippet-actions button:hover {
+            color: var(--primary-color);
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 70vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .current-edit {
+            background-color: #e6f2ff;
+            border: 2px solid var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Code Snippet Manager</h1>
+    </header>
+
+    <div class="container">
+        <!-- Input Section -->
+        <section class="input-section">
+            <input type="hidden" id="editSnippetId">
+            <div class="input-group">
+                <label for="title">Snippet Title</label>
+                <input type="text" id="title" placeholder="Enter snippet title" required>
+            </div>
+            <div class="input-group">
+                <label for="language">Programming Language</label>
+                <select id="language" required>
+                    <option value="">Select Language</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="typescript">TypeScript</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="code">Code Snippet</label>
+                <textarea id="code" placeholder="Paste your code here" required></textarea>
+            </div>
+            <div>
+                <button onclick="saveSnippet()" class="btn" id="saveBtn">Save Snippet</button>
+                <button onclick="cancelEdit()" class="btn btn-secondary" id="cancelBtn" style="display:none;">Cancel</button>
+            </div>
+        </section>
+
+        <!-- Snippets Section -->
+        <section class="snippets-section">
+            <div class="search-container">
+                <input type="text" 
+                       placeholder="Search snippets..." 
+                       oninput="searchSnippets()" 
+                       class="search-input">
+            </div>
+            <div id="snippetsGrid" class="snippet-grid"></div>
+        </section>
+    </div>
+
+    <!-- Modal for Code View -->
+    <div id="codeModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle"></h2>
+            <pre><code id="modalCode"></code></pre>
+            <button onclick="closeModal()" class="btn">Close</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+    <script>
+        // Initialize snippets from local storage
+        let snippets = JSON.parse(localStorage.getItem('codeSnippets')) || [];
+
+        function saveSnippet() {
+            const id = document.getElementById('editSnippetId').value;
+            const title = document.getElementById('title').value;
+            const language = document.getElementById('language').value;
+            const code = document.getElementById('code').value;
+
+            // Validation
+            if (!title || !language || !code) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            // If editing existing snippet
+            if (id) {
+                // Remove old snippet
+                snippets = snippets.filter(s => s.id !== parseInt(id));
+            }
+
+            // Create new snippet
+            const snippet = {
+                id: id ? parseInt(id) : Date.now(),
+                title,
+                language,
+                code
+            };
+
+            // Add to snippets
+            snippets.push(snippet);
+            
+            // Sort snippets
+            snippets.sort((a, b) => b.id - a.id);
+
+            // Save to local storage
+            localStorage.setItem('codeSnippets', JSON.stringify(snippets));
+            
+            // Reset form
+            resetForm();
+
+            // Update display
+            displaySnippets();
+        }
+
+        function editSnippet(id) {
+            const snippet = snippets.find(s => s.id === id);
+            
+            // Populate form
+            document.getElementById('editSnippetId').value = id;
+            document.getElementById('title').value = snippet.title;
+            document.getElementById('language').value = snippet.language;
+            document.getElementById('code').value = snippet.code;
+
+            // Show cancel button
+            document.getElementById('cancelBtn').style.display = 'inline-block';
+            document.getElementById('saveBtn').textContent = 'Update Snippet';
+
+            // Highlight current editing snippet
+            displaySnippets();
+        }
+
+        function cancelEdit() {
+            resetForm();
+            displaySnippets();
+        }
+
+        function resetForm() {
+            document.getElementById('editSnippetId').value = '';
+            document.getElementById('title').value = '';
+            document.getElementById('language').value = '';
+            document.getElementById('code').value = '';
+            
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('saveBtn').textContent = 'Save Snippet';
+        }
+
+        function displaySnippets(filteredSnippets = snippets) {
+            const grid = document.getElementById('snippetsGrid');
+            const currentEditId = document.getElementById('editSnippetId').value;
+            grid.innerHTML = '';
+
+            filteredSnippets.forEach(snippet => {
+                const card = document.createElement('div');
+                card.className = `snippet-card ${currentEditId == snippet.id ? 'current-edit' : ''}`;
+                card.innerHTML = `
+                    <div class="snippet-info">
+                        <h3>${snippet.title}</h3>
+                        <p>Language: ${snippet.language}</p>
+                    </div>
+                    <div class="snippet-actions">
+                        <button onclick="viewSnippet(${snippet.id})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="editSnippet(${snippet.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteSnippet(${snippet.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function searchSnippets() {
+            const searchTerm = document.querySelector('.search-input').value.toLowerCase();
+            const filtered = snippets.filter(snippet => 
+                snippet.title.toLowerCase().includes(searchTerm) ||
+                snippet.code.toLowerCase().includes(searchTerm)
+            );
+            displaySnippets(filtered);
+        }
+
+        function viewSnippet(id) {
+            const snippet = snippets.find(s => s.id === id);
+            const modal = document.getElementById('codeModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalCode = document.getElementById('modalCode');
+
+            modalTitle.textContent = `${snippet.title} (${snippet.language})`;
+            modalCode.textContent = snippet.code;
+            modalCode.className = `language-${snippet.language}`;
+            
+            Prism.highlightElement(modalCode);
+            modal.style.display = 'block';
+        }
+
+        function deleteSnippet(id) {
+            if (confirm('Are you sure you want to delete this snippet?')) {
+                snippets = snippets.filter(s => s.id !== id);
+                localStorage.setItem('codeSnippets', JSON.stringify(snippets));
+                displaySnippets();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('codeModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('codeModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Initial Display
+        displaySnippets();
+    </script>
+</body>
+</html>

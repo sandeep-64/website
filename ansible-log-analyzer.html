@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ansible Playbook Log Analyzer</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        textarea {
+            flex-grow: 1;
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: none;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #results {
+            margin-top: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        .task-list {
+            margin-top: 10px;
+        }
+        .unchanged { color: #007bff; }
+        .changed { color: #ffc107; }
+        .skipped { color: #6c757d; }
+        .failed { color: #dc3545; }
+        .error-details {
+            background-color: #ffeeee;
+            border-left: 3px solid #ff0000;
+            padding: 10px;
+            margin-top: 5px;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ansible Playbook Log Analyzer</h1>
+        <textarea id="logInput" placeholder="Paste your Ansible playbook logs here..."></textarea>
+        <div>
+            <button onclick="analyzeLogs()">Analyze Logs</button>
+            <button onclick="filterTasks('unchanged')">Show Unchanged</button>
+            <button onclick="filterTasks('changed')">Show Changed</button>
+            <button onclick="filterTasks('skipped')">Show Skipped</button>
+            <button onclick="filterTasks('failed')">Show Failed</button>
+        </div>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let tasks = {};
+
+        function analyzeLogs() {
+            const logInput = document.getElementById('logInput').value;
+            const lines = logInput.split('\n');
+            tasks = {
+                unchanged: [],
+                changed: [],
+                skipped: [],
+                failed: []
+            };
+
+            let currentTask = null;
+            let errorMessage = null;
+
+            lines.forEach((line, index) => {
+                line = line.trim();
+                if (line.startsWith('TASK [')) {
+                    currentTask = line.substring(6, line.length - 1).replace(/\] \*+$/, '').trim();
+                } else if (currentTask) {
+                    if (line.startsWith('ok:')) {
+                        tasks.unchanged.push({ name: currentTask, host: line.split(':')[1].trim() });
+                    } else if (line.startsWith('changed:')) {
+                        tasks.changed.push({ name: currentTask, host: line.split(':')[1].trim() });
+                    } else if (line.startsWith('skipping:')) {
+                        tasks.skipped.push({ name: currentTask, host: line.split(':')[1].trim() });
+                    } else if (line.startsWith('failed:') || line.includes('FAILED!') || line.startsWith('fatal:')) {
+                        errorMessage = lines.slice(index).join('\n').match(/=>(.+)/s);
+                        errorMessage = errorMessage ? errorMessage[1].trim() : null;
+                        const host = line.split(':')[0].replace('fatal', '').trim();
+                        tasks.failed.push({ name: currentTask, host: host, error: errorMessage });
+                        errorMessage = null;
+                    }
+                }
+            });
+
+            displayResults(tasks);
+        }
+
+        function displayResults(filteredTasks) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <h2>Analysis Results:</h2>
+                ${Object.keys(filteredTasks).map(type => `
+                    <h3 class="${type}">${capitalize(type)} Tasks (${filteredTasks[type].length})</h3>
+                    <div class="task-list">${filteredTasks[type].map(task => `
+                        ${task.name} - ${task.host}
+                        ${task.error ? `<div class="error-details"><pre>${formatJSON(task.error)}</pre></div>` : ''}
+                    `).join('<br>')}</div>
+                `).join('')}
+            `;
+        }
+
+        function filterTasks(type) {
+            const filteredTasks = { [type]: tasks[type] };
+            displayResults(filteredTasks);
+        }
+
+        function formatJSON(jsonString) {
+            try {
+                const obj = JSON.parse(jsonString);
+                return JSON.stringify(obj, null, 2);
+            } catch (e) {
+                return jsonString;
+            }
+        }
+
+        function capitalize(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to PPT Converter</title>
+</head>
+<body>
+    <h1>Convert Images to PPT</h1>
+    <form id="imageForm">
+        <input type="file" id="images" name="images" accept=".jpg" multiple>
+        <button type="button" onclick="convertToPPT()">Convert to PPT</button>
+    </form>
+    <div id="downloadLink" style="margin-top: 20px;"></div>
+
+    <script>
+        function convertToPPT() {
+            const images = document.getElementById('images').files;
+            if (images.length === 0) {
+                alert('Please select images to convert.');
+                return;
+            }
+
+            // Create a FormData object to send images to the server
+            const formData = new FormData();
+            for (let i = 0; i < images.length; i++) {
+                formData.append('images', images[i]);
+            }
+
+            // Send the images to a server-side script
+            fetch('/convert-to-ppt', { // You need to set up this endpoint
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'images.pptx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.getElementById('downloadLink').innerHTML = 'Download your PPT: <a href="' + url + '">Download</a>';
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>

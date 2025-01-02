@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VM Command Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: auto;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            width: 100%;
+            margin: 20px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .input-section, .output-section {
+            flex: 1;
+            min-width: 300px;
+            margin: 10px;
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            width: 100%;
+        }
+        label {
+            font-weight: bold;
+            margin-top: 10px;
+            display: block;
+            color: #555;
+        }
+        textarea, select, button {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 14px;
+            color: #333;
+            height: calc(100% - 40px);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="input-section">
+            <h1>Command Generator</h1>
+            <label for="vmList">Enter VM List (line separated):</label>
+            <textarea id="vmList" rows="5" placeholder="Enter VM names here..."></textarea>
+
+            <button onclick="populateVMs()">Load VMs</button>
+
+            <label for="commandSelect">Select Commands:</label>
+            <select id="commandSelect" multiple size="5">
+                <option value="chkapps_ms $VM_NAME">chkapps_ms $VM_NAME</option>
+                <option value="./systemCheck.sh -h $VM_NAME -t yes">./systemCheck.sh -h $VM_NAME -t yes</option>
+                <option value="./systemCheck.sh -h $VM_NAME">./systemCheck.sh -h $VM_NAME</option>
+                <option value="chkapps_nosleep $VM_NAME">chkapps_nosleep $VM_NAME</option>
+                <option value="chkapps_nontom $VM_NAME -10">chkapps_nontom $VM_NAME</option>
+                <option value="chkapps_tom $VM_NAME">chkapps_tom $VM_NAME</option>
+                <option value="opentack server list | grep $VM_NAME">opentack server list | grep $VM_NAME</option>
+                <option value="opentack volume list | grep $VM_NAME">opentack volume list | grep $VM_NAME</option>
+                <option value="opentack port list   | grep port-$VM_NAME">opentack port list   | grep port-$VM_NAME</option>
+                <option value="opentack server delete  $VM_NAME">opentack server delete  $VM_NAME</option>
+                <option value="opentack volume delete  $VM_NAME">opentack volume delete  $VM_NAME</option>
+                <option value="opentack port   delete  port-$VM_NAME">opentack port   delete  port-$VM_NAME</option>
+            </select>
+
+            <label for="vmSelect">Select VMs:</label>
+            <select id="vmSelect" multiple size="10"></select>
+
+            <button onclick="generateCommands()">Generate Commands</button>
+        </div>
+
+        <div class="output-section">
+            <h2>Generated Commands:</h2>
+            <pre id="output"></pre>
+        </div>
+    </div>
+
+    <script>
+        function populateVMs() {
+            const vmList = document.getElementById('vmList').value.trim().split(/\s*\n\s*/);
+            const vmSelect = document.getElementById('vmSelect');
+            vmSelect.innerHTML = ''; // Clear existing options
+
+            vmList.forEach(vm => {
+                const option = document.createElement('option');
+                option.value = vm;
+                option.textContent = vm;
+                vmSelect.appendChild(option);
+            });
+        }
+
+        function generateCommands() {
+            const vmSelect = document.getElementById('vmSelect');
+            const selectedVMs = Array.from(vmSelect.selectedOptions).map(option => option.value);
+            const commandSelect = document.getElementById('commandSelect');
+            const selectedCommands = Array.from(commandSelect.selectedOptions).map(option => option.value);
+            let output = '';
+
+            selectedVMs.forEach(vm => {
+                selectedCommands.forEach(commandTemplate => {
+                    output += commandTemplate.replace('$VM_NAME', vm) + '\n';
+                });
+            });
+
+            // Remove selected VMs from the list
+            selectedVMs.forEach(vm => {
+                const option = Array.from(vmSelect.options).find(option => option.value === vm);
+                if (option) {
+                    vmSelect.removeChild(option);
+                }
+            });
+
+            document.getElementById('output').textContent += output;
+        }
+    </script>
+
+</body>
+</html>

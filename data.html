@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filtered Structured Data Improver</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Filtered Structured Data Improver</h1>
+        <form id="improverForm">
+            <label for="inputData">Enter Your Data:</label>
+            <textarea id="inputData" rows="10" required placeholder="Enter any type of data (text, code, command output, technical data, etc.)"></textarea>
+            
+            <button type="submit">Improve and Structure Data</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('improverForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const inputData = document.getElementById('inputData').value;
+
+            function improveAndStructureData(data) {
+                let improved = data.trim();
+                
+                // Remove specified names
+                const namesToRemove = [
+                    "Rajveer Chauhan",
+                    "Puneet Narsapur",
+                    "Arvind Gopalakrishnan",
+                    "Arvind",
+                    "Rajveer",
+                    "Puneet",
+                    "Rakesh",
+                    "•",
+                    "Yao ting Wei",
+                    "Tausif Shaikh",
+                    "Tausif",
+                    "Sagar Gunjikar",
+                    "Hall Liu",
+                    "Sagar",
+                    "Xuan Hu",
+                    "Xuan",
+                ];
+                namesToRemove.forEach(name => {
+                    improved = improved.replace(new RegExp(name, 'gi'), '');
+                });
+                
+                // Remove date and time information
+                improved = improved.replace(/\d{2}[-/]\d{2}[-/]\d{4}\s?\d{2}:\d{2}/g, '');
+                
+                // Split into sentences or logical parts
+                let parts = improved.split(/[.!?]\s+/);
+                
+                // Process each part
+                parts = parts.map(part => {
+                    part = part.trim();
+                    if (part) {
+                        // Capitalize first letter
+                        part = part.charAt(0).toUpperCase() + part.slice(1);
+                        
+                        // Improve readability of camelCase in technical data
+                        part = part.replace(/([a-z])([A-Z])/g, '$1 $2');
+                        
+                        // Convert URLs to hyperlinks
+                        part = part.replace(
+                            /(https?:\/\/[^\s]+)/g, 
+                            '<a href="$1" target="_blank">$1</a>'
+                        );
+                        
+                        // Correct common grammatical issues
+                        part = part.replace(/\s+/g, ' ') // Remove extra spaces
+                                   .replace(/\s+([.,!?])/g, '$1') // Remove spaces before punctuation
+                                   .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space between words in camelCase
+                                   .replace(/\bi\b/g, 'I') // Capitalize 'i' when it's a single word
+                                   .replace(/\b(am|is|are|was|were)\b\s+been/gi, '$1') // Remove unnecessary 'been'
+                                   .replace(/\b(have|has)\b\s+been\s+([\w]+?ed)/gi, '$1 $2') // Simplify perfect tenses
+                                   .replace(/\b(in order to|due to the fact that)\b/gi, 'to') // Simplify wordy phrases
+                                   .replace(/\b(at this point in time|at the present time)\b/gi, 'now') // Simplify time phrases
+                                   .replace(/\b(because of the fact that)\b/gi, 'because') // Simplify 'because of the fact that'
+                                   .replace(/\b(in spite of the fact that)\b/gi, 'although') // Simplify 'in spite of the fact that'
+                                   .replace(/\b(in the event that)\b/gi, 'if') // Simplify 'in the event that'
+                                   .replace(/\b(in a timely manner)\b/gi, 'promptly') // Simplify 'in a timely manner'
+                                   .replace(/\b(on a regular basis)\b/gi, 'regularly') // Simplify 'on a regular basis'
+                        
+                        // Ensure proper ending
+                        if (!/[.!?]$/.test(part)) {
+                            part += '.';
+                        }
+                    }
+                    return part;
+                }).filter(part => part); // Remove empty parts
+
+                return parts;
+            }
+
+            const improvedData = improveAndStructureData(inputData);
+            
+            // Store the improved data in localStorage
+            localStorage.setItem('improvedData', JSON.stringify(improvedData));
+            
+            // Open the output page
+            window.open('output.html', '_blank');
+        });
+    </script>
+</body>
+</html>

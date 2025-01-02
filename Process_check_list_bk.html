@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VM Build Checklist</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            height: 100%;
+            width: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            height: 100%;
+            width: 100%;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .input-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        input[type="text"], input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #newInstruction {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        #rowCount {
+            width: 60px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .cell {
+            border: 1px solid #ddd;
+            padding: 10px;
+            min-height: 100px;
+        }
+        .instruction {
+            background-color: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: move;
+        }
+        .instruction-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .instruction label {
+            flex-grow: 1;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .instruction button {
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        .details {
+            margin-top: 10px;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            height: 50px;
+        }
+        .editable {
+            background-color: transparent;
+            border: none;
+            font-family: inherit;
+            font-size: inherit;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+        }
+        .editable:focus {
+            outline: none;
+            border-bottom: 1px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ICC Instruction</h1>
+        <div class="input-container">
+            <input type="text" id="newInstruction" placeholder="Add new instruction">
+            <input type="number" id="rowCount" value="3" min="1">
+            <button onclick="addInstruction()">Add</button>
+            <button onclick="updateGrid()">Update Grid</button>
+        </div>
+        <div id="grid" class="grid"></div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        let draggedItem = null;
+        let instructions = [];
+
+        function createGrid(rows) {
+            grid.innerHTML = '';
+            for (let i = 0; i < rows * 3; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.ondragover = allowDrop;
+                cell.ondrop = drop;
+                grid.appendChild(cell);
+            }
+        }
+
+        function updateGrid() {
+            const rows = parseInt(document.getElementById('rowCount').value);
+            createGrid(rows);
+            loadChecklist();
+        }
+
+        function addInstruction() {
+            const instructionText = document.getElementById('newInstruction').value;
+            if (instructionText) {
+                const newInstruction = {
+                    text: instructionText,
+                    completed: false,
+                    details: ''
+                };
+                instructions.unshift(newInstruction);
+                saveChecklist();
+                loadChecklist();
+                document.getElementById('newInstruction').value = '';
+            }
+        }
+
+        function createInstructionElement(text, completed, details) {
+            const instruction = document.createElement('div');
+            instruction.className = 'instruction';
+            instruction.draggable = true;
+            instruction.ondragstart = drag;
+
+            const header = document.createElement('div');
+            header.className = 'instruction-header';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = completed;
+
+            checkbox.onchange = () => {
+                const index = Array.from(instruction.parentNode.parentNode.children).indexOf(instruction.parentNode);
+                instructions[index].completed = checkbox.checked;
+                saveChecklist();
+            };
+
+            const label = document.createElement('span');
+            label.textContent = text;
+            label.ondblclick = (e) => makeEditable(e.target);
+
+            const copyButton = document.createElement('button');
+            copyButton.textContent = 'Copy';
+            copyButton.onclick = () => copyInstruction(instruction);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.onclick = () => deleteInstruction(instruction);
+
+            header.appendChild(checkbox);
+            header.appendChild(label);
+            header.appendChild(copyButton);
+            header.appendChild(deleteButton);
+
+            const detailsDiv = document.createElement('div');
+            detailsDiv.className = 'details';
+
+            const textArea = document.createElement('textarea');
+            textArea.value = details;
+            textArea.oninput = () => {
+                const index = Array.from(instruction.parentNode.parentNode.children).indexOf(instruction.parentNode);
+                instructions[index].details = textArea.value;
+                saveChecklist();
+            };
+
+            detailsDiv.appendChild(textArea);
+
+            instruction.appendChild(header);
+            instruction.appendChild(detailsDiv);
+
+            return instruction;
+        }
+
+        function makeEditable(element) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = element.textContent;
+            input.className = 'editable';
+            input.onblur = () => finishEditing(element, input);
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    finishEditing(element, input);
+                }
+            };
+            element.parentNode.replaceChild(input, element);
+            input.focus();
+        }
+
+        function finishEditing(span, input) {
+            span.textContent = input.value;
+            input.parentNode.replaceChild(span, input);
+            const instructionElement = span.closest('.instruction');
+            const index = Array.from(instructionElement.parentNode.parentNode.children).indexOf(instructionElement.parentNode);
+            instructions[index].text = input.value;
+            saveChecklist();
+        }
+
+        function saveChecklist() {
+            localStorage.setItem('checklist', JSON.stringify(instructions));
+        }
+
+        function loadChecklist() {
+            instructions = JSON.parse(localStorage.getItem('checklist')) || [];
+            grid.innerHTML = '';
+            createGrid(Math.ceil(instructions.length / 3));
+            instructions.forEach((item, index) => {
+                const instruction = createInstructionElement(item.text, item.completed, item.details);
+                const cellIndex = index % grid.childElementCount;
+                grid.children[cellIndex].appendChild(instruction);
+            });
+        }
+
+        function deleteInstruction(instruction) {
+            const index = Array.from(instruction.parentNode.parentNode.children).indexOf(instruction.parentNode);
+            instructions.splice(index, 1);
+            saveChecklist();
+            loadChecklist();
+        }
+
+        function copyInstruction(instruction) {
+            const text = instruction.querySelector('.instruction-header span').textContent;
+            const details = instruction.querySelector('textarea').value;
+            const content = `${text}\n\nDetails:\n${details}`;
+            navigator.clipboard.writeText(content).then(() => {
+                alert('Instruction copied to clipboard!');
+            });
+        }
+
+        function drag(ev) {
+            draggedItem = ev.target;
+            ev.dataTransfer.setData('text/plain', '');
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            if (draggedItem && ev.target.className === 'cell') {
+                const fromIndex = Array.from(draggedItem.parentNode.parentNode.children).indexOf(draggedItem.parentNode);
+                const toIndex = Array.from(ev.target.parentNode.children).indexOf(ev.target);
+                const [movedInstruction] = instructions.splice(fromIndex, 1);
+                instructions.splice(toIndex, 0, movedInstruction);
+                saveChecklist();
+                loadChecklist();
+            }
+        }
+
+        // Initialize the grid and load the checklist
+        updateGrid();
+    </script>
+</body>
+</html>

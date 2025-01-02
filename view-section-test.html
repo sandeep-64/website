@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Section Full View</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --code-background: #282c34;
+            --code-text: #abb2bf;
+            --code-border: #3e4451;
+            --code-keyword: #c678dd;
+            --code-string: #98c379;
+            --code-function: #61afef;
+            --code-variable: #e06c75;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            margin: 0 0 20px 0;
+            color: var(--secondary-color);
+            font-weight: 600;
+            padding: 20px 0;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .section-content {
+            flex: 1;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            overflow-y: auto;
+            height: calc(100vh - 160px);
+        }
+        pre {
+            background-color: var(--code-background);
+            color: var(--code-text);
+            padding: 20px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            border: 1px solid var(--code-border);
+            position: relative;
+        }
+        .copy-btn, .copy-all-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+        }
+        .copy-btn:hover, .copy-all-btn:hover {
+            background-color: #2980b9;
+        }
+        code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+            font-size: 0.9em;
+            color: inherit;
+        }
+        .language-javascript .token.keyword {
+            color: var(--code-keyword);
+        }
+        .language-javascript .token.string {
+            color: var(--code-string);
+        }
+        .language-javascript .token.function {
+            color: var(--code-function);
+        }
+        .language-javascript .token.variable {
+            color: var(--code-variable);
+        }
+        h2, h3, h4, h5, h6 {
+            margin-top: 25px;
+            margin-bottom: 15px;
+            color: var(--secondary-color);
+        }
+        ul, ol {
+            margin-left: 20px;
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        blockquote {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 15px;
+            margin-left: 0;
+            color: #555;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 20px 0;
+        }
+        .task-list-item {
+            list-style-type: none;
+        }
+        .task-list-item input {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="copy-all-btn" class="copy-all-btn">Copy All</button>
+        <div id="section-content" class="section-content"></div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const sectionId = urlParams.get('sectionId');
+
+        if (sectionId) {
+            const sectionData = JSON.parse(localStorage.getItem(`section-${sectionId}`));
+            if (sectionData) {
+                const formattedContent = formatContent(sectionData.content);
+                document.getElementById('section-content').innerHTML = formattedContent;
+                addCopyButtons();
+            } else {
+                document.getElementById('section-content').innerHTML = '<p>Section not found.</p>';
+            }
+        } else {
+            document.getElementById('section-content').innerHTML = '<p>Invalid section ID.</p>';
+        }
+
+        function formatContent(content) {
+            // Headings
+            content = content.replace(/^(#{1,6})\s(.*)$/gm, (match, hashes, text) => {
+                const level = hashes.length;
+                return `<h${level}>${text}</h${level}>`;
+            });
+
+            // Code blocks
+            content = content.replace(/```([\w.]+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                const language = lang || 'plaintext';
+                return `<pre><code class="language-${language}">${code.trim()}</code></pre>`;
+            });
+
+            // Inline code
+            content = content.replace(/`([^`\n]+)`/g, (match, code) => {
+                return `<code>${code.trim()}</code>`;
+            });
+
+            // Bold and Italic
+            content = content.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>');
+            content = content.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>');
+
+            // Strikethrough
+            content = content.replace(/~~(.*?)~~/g, '<del>$1</del>');
+
+            // Blockquotes
+            content = content.replace(/^>\s(.*)$/gm, '<blockquote>$1</blockquote>');
+
+            // Lists
+            let inList = false;
+            let listType = '';
+            let listNumber = 0;
+            content = content.split('\n').map(line => {
+                const listMatch = line.match(/^(\s*)(\d+\.|\-|\*|\+)\s(.*)$/);
+                if (listMatch) {
+                    const [, indent, bullet, text] = listMatch;
+                    const newListType = /^\d+\./.test(bullet) ? 'ol' : 'ul';
+                    if (!inList || newListType !== listType) {
+                        inList = true;
+                        listType = newListType;
+                        listNumber = listType === 'ol' ? parseInt(bullet) : 0;
+                        return `${indent}<${listType}${listType === 'ol' ? ` start="${listNumber}"` : ''}><li>${text}</li>`;
+                    }
+                    if (listType === 'ol') {
+                        listNumber++;
+                        return `${indent}<li value="${listNumber}">${text}</li>`;
+                    }
+                    return `${indent}<li>${text}</li>`;
+                } else if (inList && line.trim() === '') {
+                    inList = false;
+                    listNumber = 0;
+                    return `</${listType}>`;
+                } else if (inList) {
+                    return line;
+                }
+                return line;
+            }).join('\n');
+
+            if (inList) {
+                content += `</${listType}>`;
+            }
+
+            // Links and Images
+            content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+            content = content.replace(/!\[([^\]]+)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+
+            // Horizontal Rule
+            content = content.replace(/^(-{3,}|\*{3,}|_{3,})$/gm, '<hr>');
+
+            // Tables
+            content = content.replace(/^\|(.+)\|$/gm, (match, row) => {
+                const cells = row.split('|').map(cell => cell.trim());
+                return `<tr>${cells.map(cell => `<td>${cell}</td>`).join('')}</tr>`;
+            });
+            content = content.replace(/<tr>(.+)<\/tr>\n<tr>(\|[-:]+)+\|<\/tr>/g, (match, headerRow) => {
+                return `<table><thead>${headerRow}</thead><tbody>`;
+            });
+            content = content.replace(/<\/tbody><\/table>\n<tr>/g, '<tr>');
+            content = content.replace(/<\/tr>\n(?!<tr>)/g, '</tr></tbody></table>');
+
+            // Task Lists
+            content = content.replace(/^(\s*)-\s\[([ x])\]\s(.*)$/gm, (match, indent, checked, text) => {
+                const isChecked = checked === 'x' ? 'checked' : '';
+                return `${indent}<li class="task-list-item"><input type="checkbox" ${isChecked} disabled> ${text}</li>`;
+            });
+
+            return content;
+        }
+
+        function addCopyButtons() {
+            const preElements = document.querySelectorAll('pre');
+            preElements.forEach((pre, index) => {
+                const button = document.createElement('button');
+                button.textContent = 'Copy';
+                button.className = 'copy-btn';
+                button.addEventListener('click', () => copyToClipboard(pre.querySelector('code') || pre, button));
+                pre.appendChild(button);
+            });
+        }
+
+        function copyToClipboard(element, button) {
+            const text = element.textContent.trim();
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+
+        // Add event listener for the "Copy All" button
+        document.getElementById('copy-all-btn').addEventListener('click', function() {
+            const sectionContent = document.getElementById('section-content');
+            const allText = sectionContent.innerText;
+            
+            navigator.clipboard.writeText(allText).then(() => {
+                this.textContent = 'Copied All!';
+                setTimeout(() => {
+                    this.textContent = 'Copy All';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy all text: ', err);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSV to Table with Swap and Add Entry</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    #csvOutput {
+      margin-top: 20px;
+      width: 100%;
+      height: 100px;
+      resize: none;
+    }
+  </style>
+</head>
+<body>
+  <textarea id="csvData" rows="10" cols="50" placeholder="Enter CSV data here..."></textarea>
+  <button onclick="convertCSV()">Convert to Table</button>
+  <button onclick="showCSV()">Show as CSV</button>
+  <button onclick="swapColumns()">Swap Columns</button>
+  <button onclick="addEntry()">Add Entry</button>
+  <div id="tableContainer"></div>
+  <textarea id="csvOutput" placeholder="CSV output will appear here..." readonly></textarea>
+  <script>
+    let currentRows = []; // Store the current rows for CSV output
+
+    function convertCSV() {
+      const csvData = document.getElementById('csvData').value.trim(); // Trim whitespace from the input
+      if (!csvData) {
+        alert("Please enter some CSV data.");
+        return;
+      }
+      currentRows = csvData.split('\n'); // Split input into rows
+      const table = document.createElement('table');
+      
+      // Create checkboxes for each column
+      const columnCheckboxes = [];
+      const checkboxContainer = document.createElement('div');
+      currentRows[0].split(',').forEach((column, index) => {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `column-${index}`;
+        checkbox.checked = true; // Check all columns by default
+        columnCheckboxes.push(checkbox);
+        const label = document.createElement('label');
+        label.textContent = `Column ${index + 1}`;
+        label.htmlFor = checkbox.id;
+        checkboxContainer.appendChild(label);
+        checkboxContainer.appendChild(checkbox);
+        checkbox.addEventListener('change', () => {
+          updateTable(currentRows, columnCheckboxes, table);
+        });
+      });
+      document.body.appendChild(checkboxContainer);
+      updateTable(currentRows, columnCheckboxes, table);
+    }
+
+    function updateTable(rows, columnCheckboxes, table) {
+      // Remove all table rows
+      table.innerHTML = '';
+      // Create new table header
+      const headerRow = document.createElement('tr');
+      rows[0].split(',').forEach((column, index) => {
+        if (columnCheckboxes[index].checked) {
+          const headerCell = document.createElement('th');
+          headerCell.textContent = column; // No trimming, just use the raw value
+          headerRow.appendChild(headerCell);
+        }
+      });
+      table.appendChild(headerRow);
+      // Create new table rows
+      rows.slice(1).forEach((row) => {
+        const rowElement = document.createElement('tr');
+        row.split(',').forEach((column, index) => {
+          if (columnCheckboxes[index].checked) {
+            const columnElement = document.createElement('td');
+            columnElement.textContent = column; // No trimming, just use the raw value
+            rowElement.appendChild(columnElement);
+          }
+        });
+        table.appendChild(rowElement);
+      });
+      const tableContainer = document.getElementById('tableContainer');
+      tableContainer.innerHTML = ''; // Clear previous table
+      tableContainer.appendChild(table);
+    }
+
+    function showCSV() {
+      const table = document.querySelector('#tableContainer table');
+      if (!table) {
+        alert('No table available to show as CSV.');
+        return;
+      }
+      const rows = Array.from(table.rows);
+      const csvContent = rows.map(row => {
+        const cols = Array.from(row.cells).map(cell => cell.textContent);
+        return cols.join(',');
+      }).join('\n');
+      document.getElementById('csvOutput').value = csvContent; // Display CSV in the textarea
+    }
+
+    function swapColumns() {
+      const table = document.querySelector('#tableContainer table');
+      if (!table) {
+        alert('No table available to swap columns.');
+        return;
+      }
+      const rows = Array.from(table.rows);
+      rows.forEach(row => {
+        const cells = Array.from(row.cells);
+        if (cells.length >= 2) {
+          const temp = cells[0].textContent;
+          cells[0].textContent = cells[1].textContent;
+          cells[1].textContent = temp;
+        }
+      });
+    }
+
+    function addEntry() {
+      const table = document.querySelector('#tableContainer table');
+      if (!table) {
+        alert('No table available to add entries.');
+        return;
+      }
+      const rows = Array.from(table.rows);
+      rows.forEach(row => {
+        const newCell = row.insertCell(0);
+        newCell.textContent = '.i.iotcc.cisco.com,A';
+      });
+    }
+  </script>
+</body>
+</html>

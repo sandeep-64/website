@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Learning Table with Images</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 5px;
+            box-sizing: border-box;
+            margin-bottom: 5px;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            margin-top: 10px;
+        }
+        .entry-form {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        #pasteArea {
+            width: 100%;
+            min-height: 100px;
+            border: 2px dashed #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Learning Table with Images</h1>
+    
+    <div>
+        <input type="text" id="searchInput" placeholder="Search...">
+        <button onclick="searchTable()">Search</button>
+    </div>
+    
+    <table id="learningTable">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Image</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+    
+    <div class="entry-form">
+        <h3>Add New Entry</h3>
+        <input type="text" id="titleInput" placeholder="Enter title">
+        <textarea id="descriptionInput" placeholder="Enter description"></textarea>
+        <div id="pasteArea" contenteditable="true">Click here to paste image (Ctrl+V)</div>
+        <div id="imagePreview"></div>
+        <button onclick="addEntry()">Add Entry</button>
+    </div>
+
+    <script>
+        let data = JSON.parse(localStorage.getItem('learningData')) || [];
+        let currentImage = null;
+
+        document.getElementById('pasteArea').addEventListener('paste', function(e) {
+            e.preventDefault();
+            const items = e.clipboardData.items;
+            
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(event) {
+                        currentImage = event.target.result;
+                        document.getElementById('imagePreview').innerHTML = 
+                            `<img src="${currentImage}" class="image-preview">`;
+                    };
+                    
+                    reader.readAsDataURL(blob);
+                }
+            }
+        });
+
+        function renderTable() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            data.forEach((entry, index) => {
+                const row = tableBody.insertRow();
+                row.insertCell(0).textContent = entry.title;
+                row.insertCell(1).textContent = entry.description;
+                const imageCell = row.insertCell(2);
+                if (entry.image) {
+                    imageCell.innerHTML = `<img src="${entry.image}" class="image-preview">`;
+                }
+                const actionsCell = row.insertCell(3);
+                actionsCell.innerHTML = `
+                    <button onclick="editEntry(${index})">Edit</button>
+                    <button onclick="deleteEntry(${index})">Delete</button>
+                `;
+            });
+        }
+
+        function addEntry() {
+            const title = document.getElementById('titleInput').value;
+            const description = document.getElementById('descriptionInput').value;
+            
+            if (title && description) {
+                data.push({
+                    title,
+                    description,
+                    image: currentImage
+                });
+                saveData();
+                renderTable();
+                clearForm();
+            }
+        }
+
+        function editEntry(index) {
+            const entry = data[index];
+            const newTitle = prompt('Edit title:', entry.title);
+            const newDescription = prompt('Edit description:', entry.description);
+            
+            if (newTitle !== null && newDescription !== null) {
+                data[index] = {
+                    ...entry,
+                    title: newTitle,
+                    description: newDescription
+                };
+                saveData();
+                renderTable();
+            }
+        }
+
+        function deleteEntry(index) {
+            if (confirm('Are you sure you want to delete this entry?')) {
+                data.splice(index, 1);
+                saveData();
+                renderTable();
+            }
+        }
+
+        function searchTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filteredData = data.filter(entry =>
+                entry.title.toLowerCase().includes(searchTerm) ||
+                entry.description.toLowerCase().includes(searchTerm)
+            );
+            renderFilteredTable(filteredData);
+        }
+
+        function renderFilteredTable(filteredData) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            filteredData.forEach((entry, index) => {
+                const row = tableBody.insertRow();
+                row.insertCell(0).textContent = entry.title;
+                row.insertCell(1).textContent = entry.description;
+                const imageCell = row.insertCell(2);
+                if (entry.image) {
+                    imageCell.innerHTML = `<img src="${entry.image}" class="image-preview">`;
+                }
+                const actionsCell = row.insertCell(3);
+                actionsCell.innerHTML = `
+                    <button onclick="editEntry(${data.indexOf(entry)})">Edit</button>
+                    <button onclick="deleteEntry(${data.indexOf(entry)})">Delete</button>
+                `;
+            });
+        }
+
+        function clearForm() {
+            document.getElementById('titleInput').value = '';
+            document.getElementById('descriptionInput').value = '';
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('pasteArea').innerHTML = 'Click here to paste image (Ctrl+V)';
+            currentImage = null;
+        }
+
+        function saveData() {
+            localStorage.setItem('learningData', JSON.stringify(data));
+        }
+
+        renderTable();
+    </script>
+</body>
+</html>

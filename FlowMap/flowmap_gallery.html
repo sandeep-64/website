@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Control Center Flowmap Gallery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+        }
+        .gallery-item {
+            width: 30%;
+            margin-bottom: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .gallery-item img {
+            width: 100%;
+            height: auto;
+            cursor: pointer;
+        }
+        .gallery-item-info {
+            padding: 15px;
+        }
+        .file-name {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .flow-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .edit-name {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        #fullscreen-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255,255,255,0.9);
+            z-index: 1000;
+        }
+        #fullscreen-image {
+            max-width: 90%;
+            max-height: 90%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+        }
+        #close-fullscreen {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #333;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .search-container {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #search-input {
+            width: 50%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .version-info {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IoT Control Center Flowmap</h1>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search for processes..." onkeyup="searchGallery()">
+        </div>
+        <div class="gallery">
+            <div class="gallery-item">
+                <img src="./rawcdr-flow.png" alt="rawcdr flow" onclick="openFullscreen('./rawcdr-flow.png')">
+                <div class="gallery-item-info">
+                    <span class="file-name">rawcdr-flow.png</span>
+                    <p class="flow-description">Raw CDR (Call Detail Record) rawcdr processing flow. This process handles the initial processing of raw call data records in the IoT Control Center.</p>
+                    <button class="edit-name" onclick="editName(this)">Edit Name</button>
+                </div>
+            </div>
+            <div class="gallery-item">
+                <img src="./acct-flow.png" alt="Account flow" onclick="openFullscreen('./acct-flow.png')">
+                <div class="gallery-item-info">
+                    <span class="file-name">acct-flow.png</span>
+                    <p class="flow-description">
+                        Account flow processes: Handles various account-related operations including:
+                        <br>jAcctOnOff | jAcctRecordGroup | RapidLog | memcacheDelete | 
+                        simSessionChangeAcctOnOff | simSessionChangeAcctRecords | 
+                        acctRecordsCdr | rawgtp | rawgtp2 | cdr2 | 
+                        simOneBoxIndex | simState | simCucUpdate | processOta | 
+                        pushApiDeliveryQ
+                        <br><br>
+                        This flow manages account status changes, record grouping, logging, session modifications, and various data processing tasks.
+                    </p>
+                    <button class="edit-name" onclick="editName(this)">Edit Name</button>
+                </div>
+            </div>
+            <div class="gallery-item">
+                <img src="./splitter-flow.png" alt="Splitter flow" onclick="openFullscreen('./splitter-flow.png')">
+                <div class="gallery-item-info">
+                    <span class="file-name">splitter-flow.png</span>
+                    <p class="flow-description">
+                        Splitter flow processes: 
+                        <br>splitter2 | splitter | HLRLOG | hlrlog2 | pushApiDeliveryQ
+                        <br><br>
+                        This flow is responsible for splitting and processing data streams, handling HLR (Home Location Register) logs, and managing API delivery queues.
+                    </p>
+                    <button class="edit-name" onclick="editName(this)">Edit Name</button>
+                </div>
+            </div>
+        </div>
+        <div class="version-info">
+            Last updated: September 21, 2024 | Version: 1.0
+        </div>
+    </div>
+
+    <div id="fullscreen-overlay">
+        <span id="close-fullscreen" onclick="closeFullscreen()">&times;</span>
+        <img id="fullscreen-image" src="" alt="Fullscreen image">
+    </div>
+
+    <script>
+        function openFullscreen(imageSrc) {
+            const fullscreenImage = document.getElementById('fullscreen-image');
+            const fullscreenOverlay = document.getElementById('fullscreen-overlay');
+            
+            fullscreenImage.src = imageSrc;
+            fullscreenOverlay.style.display = 'block';
+            
+            // Create a temporary image to check if the loaded image has transparency
+            const tempImg = new Image();
+            tempImg.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = this.width;
+                canvas.height = this.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(this, 0, 0);
+                
+                // Check if the image has any transparent pixels
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const hasTransparency = imageData.data.some((_, i) => (i + 1) % 4 === 0 && imageData.data[i] < 255);
+                
+                if (hasTransparency) {
+                    fullscreenImage.style.backgroundColor = 'white';
+                } else {
+                    fullscreenImage.style.backgroundColor = 'transparent';
+                }
+            };
+            tempImg.src = imageSrc;
+        }
+
+        function closeFullscreen() {
+            document.getElementById('fullscreen-overlay').style.display = 'none';
+            document.getElementById('fullscreen-image').style.backgroundColor = 'transparent';
+        }
+
+        function editName(button) {
+            var nameSpan = button.parentElement.querySelector('.file-name');
+            var currentName = nameSpan.textContent;
+            var newName = prompt("Enter new name:", currentName);
+            if (newName !== null && newName !== "") {
+                nameSpan.textContent = newName;
+            }
+        }
+
+        function searchGallery() {
+            var input, filter, gallery, items, description, i, txtValue;
+            input = document.getElementById('search-input');
+            filter = input.value.toUpperCase();
+            gallery = document.querySelector('.gallery');
+            items = gallery.getElementsByClassName('gallery-item');
+
+            for (i = 0; i < items.length; i++) {
+                description = items[i].querySelector('.flow-description');
+                txtValue = description.textContent || description.innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    items[i].style.display = "";
+                } else {
+                    items[i].style.display = "none";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
