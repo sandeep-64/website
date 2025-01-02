@@ -29,7 +29,7 @@
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             padding: 20px;
             display: grid;
@@ -71,6 +71,11 @@
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
         }
 
         .snippet-grid {
@@ -94,6 +99,12 @@
             transform: translateY(-5px);
         }
 
+        .snippet-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
         .tag {
             background-color: var(--primary-color);
             color: white;
@@ -110,31 +121,43 @@
             margin-bottom: 20px;
         }
 
-        .search-input {
-            flex-grow: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
         }
 
-        .filter-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 10px;
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
 
-        .filter-tag {
-            background-color: #e0e0e0;
-            padding: 5px 10px;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .filter-tag.active {
-            background-color: var(--primary-color);
+        .code-header {
+            background-color: var(--code-background);
             color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        pre {
+            margin: 0;
+            padding: 20px !important;
+            max-height: 500px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -150,7 +173,7 @@
             <div class="input-group">
                 <label for="language">Programming Language</label>
                 <select id="language" required>
-                    <option value="css" selected>CSS</option>
+                    <option value="css">CSS</option>
                     <option value="javascript">JavaScript</option>
                     <option value="python">Python</option>
                     <option value="terraform">Terraform</option>
@@ -169,27 +192,45 @@
             </div>
             <div>
                 <button onclick="saveSnippet()" class="btn" id="saveBtn">Save Snippet</button>
-                <button onclick="cancelEdit()" class="btn" style="background-color: #e74c3c; margin-left: 10px;" id="cancelBtn">Cancel</button>
+                <button onclick="cancelEdit()" class="btn btn-danger" id="cancelBtn">Cancel</button>
             </div>
         </section>
 
         <!-- Snippets Section -->
         <section class="snippets-section">
             <div class="search-container">
+                <select id="searchType">
+                    <option value="title">Search by Title</option>
+                    <option value="tag">Search by Tag</option>
+                </select>
                 <input type="text" 
-                       class="search-input" 
-                       placeholder="Search snippets by title, tag, or language" 
+                       id="searchInput"
+                       placeholder="Search snippets" 
                        oninput="searchSnippets()">
             </div>
-            <div class="filter-tags" id="filterTags"></div>
             <div id="snippetsGrid" class="snippet-grid"></div>
         </section>
     </div>
 
+    <!-- Modal for Code View -->
+    <div id="codeModal" class="modal">
+        <div class="modal-content">
+            <div class="code-header">
+                <span id="modalTitle"></span>
+                <button onclick="closeModal()" style="color: white; background: none; border: none; cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <pre><code id="modalCode"></code></pre>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+
     <script>
         // Initialize snippets from local storage
         let snippets = JSON.parse(localStorage.getItem('codeSnippets')) || [];
-        let activeTags = [];
 
         function saveSnippet() {
             const id = document.getElementById('editSnippetId').value;
@@ -226,67 +267,23 @@
             localStorage.setItem('codeSnippets', JSON.stringify(snippets));
             
             resetForm();
-            updateTagFilters();
-            searchSnippets();
-        }
-
-        function updateTagFilters() {
-            const filterTagsContainer = document.getElementById('filterTags');
-            filterTagsContainer.innerHTML = '';
-
-            // Collect unique tags from all snippets
-            const allTags = new Set();
-            snippets.forEach(snippet => {
-                snippet.tags.forEach(tag => allTags.add(tag));
-            });
-
-            // Create filter tags
-            allTags.forEach(tag => {
-                const tagElement = document.createElement('span');
-                tagElement.textContent = tag;
-                tagElement.classList.add('filter-tag');
-                
-                if (activeTags.includes(tag)) {
-                    tagElement.classList.add('active');
-                }
-
-                tagElement.addEventListener('click', () => {
-                    toggleTagFilter(tag);
-                });
-
-                filterTagsContainer.appendChild(tagElement);
-            });
-        }
-
-        function toggleTagFilter(tag) {
-            const tagElement = Array.from(document.getElementsByClassName('filter-tag'))
-                .find(el => el.textContent === tag);
-
-            if (activeTags.includes(tag)) {
-                activeTags = activeTags.filter(t => t !== tag);
-                tagElement.classList.remove('active');
-            } else {
-                activeTags.push(tag);
-                tagElement.classList.add('active');
-            }
-
-            searchSnippets();
+            displaySnippets();
         }
 
         function searchSnippets() {
-            const searchTerm = document.querySelector('.search-input').value.toLowerCase();
+            const searchType = document.getElementById('searchType').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
 
             const filteredSnippets = snippets.filter(snippet => {
-                const matchesSearch = 
-                    snippet.title.toLowerCase().includes(searchTerm) ||
-                    snippet.language.toLowerCase().includes(searchTerm) ||
-                    snippet.tags.some(tag => tag.toLowerCase().includes(searchTerm));
-
-                const matchesTags = 
-                    activeTags.length === 0 || 
-                    activeTags.every(tag => snippet.tags.includes(tag));
-
-                return matchesSearch && matchesTags;
+                if (searchType === 'title') {
+                    // Search by title
+                    return snippet.title.toLowerCase().includes(searchTerm);
+                } else {
+                    // Search by tag
+                    return snippet.tags.some(tag => 
+                        tag.toLowerCase().includes(searchTerm)
+                    );
+                }
             });
 
             displaySnippets(filteredSnippets);
@@ -311,6 +308,9 @@
                         <div style="margin-top: 10px;">${tagsHtml}</div>
                     </div>
                     <div class="snippet-actions">
+                        <button onclick="viewSnippet(${snippet.id})">
+                            <i class="fas fa-eye"></i>
+                        </button>
                         <button onclick="editSnippet(${snippet.id})">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -321,6 +321,24 @@
                 `;
                 grid.appendChild(card);
             });
+        }
+
+        function viewSnippet(id) {
+            const snippet = snippets.find(s => s.id === id);
+            const modal = document.getElementById('codeModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalCode = document.getElementById('modalCode');
+
+            // Set modal content
+            modalTitle.textContent = `${snippet.title} (${snippet.language})`;
+            modalCode.textContent = snippet.code;
+            modalCode.className = `language-${snippet.language}`;
+            
+            // Show modal
+            modal.style.display = 'flex';
+            
+            // Highlight code
+            Prism.highlightElement(modalCode);
         }
 
         function editSnippet(id) {
@@ -342,8 +360,7 @@
             if (confirm('Are you sure you want to delete this snippet?')) {
                 snippets = snippets.filter(s => s.id !== id);
                 localStorage.setItem('codeSnippets', JSON.stringify(snippets));
-                updateTagFilters();
-                searchSnippets();
+                displaySnippets();
             }
         }
 
@@ -363,9 +380,12 @@
             displaySnippets();
         }
 
+        function closeModal() {
+            document.getElementById('codeModal').style.display = 'none';
+        }
+
         // Initial setup
         displaySnippets();
-        updateTagFilters();
     </script>
 </body>
 </html>
