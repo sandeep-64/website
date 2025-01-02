@@ -7,48 +7,142 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
     <style>
-        /* Previous CSS remains the same, adding new styles for tags */
-        .tag {
-            display: inline-block;
-            background-color: var(--primary-color);
-            color: white;
-            padding: 0.2rem 0.6rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            margin: 0.2rem;
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --background-color: #f4f4f4;
+            --text-color: #333;
+            --card-background: #ffffff;
         }
 
-        .tag-filter {
-            margin: 1rem 0;
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .tag-filter button {
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
             background-color: var(--background-color);
-            border: 1px solid var(--primary-color);
-            color: var(--primary-color);
-            padding: 0.3rem 0.8rem;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            color: var(--text-color);
         }
 
-        .tag-filter button.active {
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .header {
             background-color: var(--primary-color);
             color: white;
+            text-align: center;
+            padding: 1rem;
         }
 
-        .search-container {
+        .input-section {
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .input-group input, 
+        .input-group select, 
+        .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        .snippet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .snippet-card {
+            background-color: var(--card-background);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            gap: 1rem;
-            margin-bottom: 1rem;
+            justify-content: space-between;
         }
 
-        .snippet-tags {
-            margin-top: 0.5rem;
+        .snippet-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .snippet-actions button {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .tag {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            margin-right: 5px;
+            display: inline-block;
         }
     </style>
 </head>
@@ -68,39 +162,35 @@
             <div class="input-group">
                 <label for="language">Programming Language</label>
                 <select id="language" required>
-                    <option value="">Select Language</option>
+                    <option value="css" selected>CSS</option>
                     <option value="javascript">JavaScript</option>
                     <option value="python">Python</option>
                     <option value="java">Java</option>
                     <option value="html">HTML</option>
-                    <option value="css">CSS</option>
                     <option value="typescript">TypeScript</option>
                 </select>
             </div>
             <div class="input-group">
                 <label for="tags">Tags (comma-separated)</label>
-                <input type="text" id="tags" placeholder="e.g., backend, authentication, beginner">
+                <input type="text" id="tags" placeholder="e.g., styling, layout, responsive">
             </div>
             <div class="input-group">
                 <label for="code">Code Snippet</label>
-                <textarea id="code" placeholder="Paste your code here" required></textarea>
+                <textarea id="code" placeholder="Paste your code here" required rows="6"></textarea>
             </div>
             <div>
                 <button onclick="saveSnippet()" class="btn" id="saveBtn">Save Snippet</button>
-                <button onclick="cancelEdit()" class="btn btn-secondary" id="cancelBtn" style="display:none;">Cancel</button>
+                <button onclick="cancelEdit()" class="btn" style="background-color: #e74c3c; margin-left: 10px;" id="cancelBtn">Cancel</button>
             </div>
         </section>
 
         <!-- Snippets Section -->
         <section class="snippets-section">
-            <div class="search-container">
+            <div class="input-group">
                 <input type="text" 
                        placeholder="Search snippets..." 
                        oninput="searchSnippets()" 
-                       class="search-input">
-                <div id="tagFilters" class="tag-filter">
-                    <!-- Tag filter buttons will be dynamically added here -->
-                </div>
+                       style="width: 100%; padding: 10px; margin-bottom: 15px;">
             </div>
             <div id="snippetsGrid" class="snippet-grid"></div>
         </section>
@@ -119,7 +209,6 @@
     <script>
         // Initialize snippets from local storage
         let snippets = JSON.parse(localStorage.getItem('codeSnippets')) || [];
-        let activeTagFilters = [];
 
         function saveSnippet() {
             const id = document.getElementById('editSnippetId').value;
@@ -129,7 +218,7 @@
             const tags = document.getElementById('tags').value
                 .split(',')
                 .map(tag => tag.trim().toLowerCase())
-                .filter(tag => tag); // Remove empty tags
+                .filter(tag => tag);
 
             // Validation
             if (!title || !language || !code) {
@@ -156,80 +245,25 @@
             localStorage.setItem('codeSnippets', JSON.stringify(snippets));
             resetForm();
             displaySnippets();
-            updateTagFilters();
-        }
-
-        function getAllUniqueTags() {
-            const tagSet = new Set();
-            snippets.forEach(snippet => {
-                snippet.tags.forEach(tag => tagSet.add(tag));
-            });
-            return Array.from(tagSet).sort();
-        }
-
-        function updateTagFilters() {
-            const filterContainer = document.getElementById('tagFilters');
-            const uniqueTags = getAllUniqueTags();
-            
-            filterContainer.innerHTML = '';
-            uniqueTags.forEach(tag => {
-                const button = document.createElement('button');
-                button.textContent = tag;
-                button.onclick = () => toggleTagFilter(tag);
-                if (activeTagFilters.includes(tag)) {
-                    button.classList.add('active');
-                }
-                filterContainer.appendChild(button);
-            });
-        }
-
-        function toggleTagFilter(tag) {
-            const index = activeTagFilters.indexOf(tag);
-            if (index === -1) {
-                activeTagFilters.push(tag);
-            } else {
-                activeTagFilters.splice(index, 1);
-            }
-            updateTagFilters();
-            searchSnippets();
-        }
-
-        function searchSnippets() {
-            const searchTerm = document.querySelector('.search-input').value.toLowerCase();
-            const filtered = snippets.filter(snippet => {
-                const matchesSearch = 
-                    snippet.title.toLowerCase().includes(searchTerm) ||
-                    snippet.code.toLowerCase().includes(searchTerm);
-                
-                const matchesTags = 
-                    activeTagFilters.length === 0 || 
-                    activeTagFilters.every(tag => snippet.tags.includes(tag));
-                
-                return matchesSearch && matchesTags;
-            });
-            displaySnippets(filtered);
         }
 
         function displaySnippets(filteredSnippets = snippets) {
             const grid = document.getElementById('snippetsGrid');
-            const currentEditId = document.getElementById('editSnippetId').value;
             grid.innerHTML = '';
 
             filteredSnippets.forEach(snippet => {
                 const card = document.createElement('div');
-                card.className = `snippet-card ${currentEditId == snippet.id ? 'current-edit' : ''}`;
+                card.className = 'snippet-card';
                 
                 const tagsHtml = snippet.tags.map(tag => 
                     `<span class="tag">${tag}</span>`
                 ).join('');
 
                 card.innerHTML = `
-                    <div class="snippet-info">
+                    <div>
                         <h3>${snippet.title}</h3>
                         <p>Language: ${snippet.language}</p>
-                        <div class="snippet-tags">
-                            ${tagsHtml}
-                        </div>
+                        <div style="margin-top: 10px;">${tagsHtml}</div>
                     </div>
                     <div class="snippet-actions">
                         <button onclick="viewSnippet(${snippet.id})">
@@ -262,20 +296,22 @@
             displaySnippets();
         }
 
-        function cancelEdit() {
-            resetForm();
-            displaySnippets();
+        function deleteSnippet(id) {
+            if (confirm('Are you sure you want to delete this snippet?')) {
+                snippets = snippets.filter(s => s.id !== id);
+                localStorage.setItem('codeSnippets', JSON.stringify(snippets));
+                displaySnippets();
+            }
         }
 
-        function resetForm() {
-            document.getElementById('editSnippetId').value = '';
-            document.getElementById('title').value = '';
-            document.getElementById('language').value = '';
-            document.getElementById('code').value = '';
-            document.getElementById('tags').value = '';
-            
-            document.getElementById('cancelBtn').style.display = 'none';
-            document.getElementById('saveBtn').textContent = 'Save Snippet';
+        function searchSnippets() {
+            const searchTerm = document.querySelector('input[placeholder="Search snippets..."]').value.toLowerCase();
+            const filtered = snippets.filter(snippet => 
+                snippet.title.toLowerCase().includes(searchTerm) ||
+                snippet.code.toLowerCase().includes(searchTerm) ||
+                snippet.tags.some(tag => tag.includes(searchTerm))
+            );
+            displaySnippets(filtered);
         }
 
         function viewSnippet(id) {
@@ -288,17 +324,23 @@
             modalCode.textContent = snippet.code;
             modalCode.className = `language-${snippet.language}`;
             
-            Prism.highlightElement(modalCode);
             modal.style.display = 'block';
         }
 
-        function deleteSnippet(id) {
-            if (confirm('Are you sure you want to delete this snippet?')) {
-                snippets = snippets.filter(s => s.id !== id);
-                localStorage.setItem('codeSnippets', JSON.stringify(snippets));
-                displaySnippets();
-                updateTagFilters();
-            }
+        function resetForm() {
+            document.getElementById('editSnippetId').value = '';
+            document.getElementById('title').value = '';
+            document.getElementById('language').value = 'css';
+            document.getElementById('code').value = '';
+            document.getElementById('tags').value = '';
+            
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('saveBtn').textContent = 'Save Snippet';
+        }
+
+        function cancelEdit() {
+            resetForm();
+            displaySnippets();
         }
 
         function closeModal() {
@@ -315,7 +357,6 @@
 
         // Initial Display
         displaySnippets();
-        updateTagFilters();
     </script>
 </body>
 </html>
