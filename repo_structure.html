@@ -1,0 +1,275 @@
+id: repo-tree-viewer-v2
+name: Repository Tree Viewer with Local Folder Selection
+type: html
+content: |-
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Repository Tree Viewer</title>
+      <style>
+          body {
+              font-family: Arial, sans-serif;
+              margin: 20px;
+          }
+          
+          .tree {
+              margin-left: 20px;
+          }
+          
+          .tree-item {
+              margin: 5px 0;
+              position: relative;
+          }
+          
+          .toggle {
+              cursor: pointer;
+              user-select: none;
+              margin-right: 5px;
+          }
+          
+          .folder {
+              color: #e8a87c;
+              cursor: pointer;
+          }
+          
+          .file {
+              color: #41b3a3;
+          }
+          
+          .note-input {
+              margin-left: 10px;
+              padding: 2px;
+          }
+          
+          .note-indicator {
+              display: inline-block;
+              width: 10px;
+              height: 10px;
+              background-color: #85dcb8;
+              border-radius: 50%;
+              margin-left: 5px;
+              cursor: help;
+          }
+          
+          .tooltip {
+              position: absolute;
+              background: #333;
+              color: white;
+              padding: 5px;
+              border-radius: 4px;
+              display: none;
+              z-index: 100;
+              max-width: 200px;
+          }
+          
+          .control-panel {
+              margin-bottom: 20px;
+              padding: 15px;
+              background-color: #f5f5f5;
+              border-radius: 5px;
+          }
+          
+          .button {
+              padding: 10px 15px;
+              margin: 5px;
+              border: none;
+              border-radius: 4px;
+              background-color: #41b3a3;
+              color: white;
+              cursor: pointer;
+          }
+          
+          .button:hover {
+              background-color: #3a9e8f;
+          }
+          
+          #selected-path {
+              margin-top: 10px;
+              padding: 10px;
+              background-color: #fff;
+              border-radius: 4px;
+          }
+          
+          .loading {
+              display: none;
+              margin-left: 10px;
+          }
+      </style>
+  </head>
+  <body>
+      <h2>Repository Tree Viewer</h2>
+      <div class="control-panel">
+          <button id="select-folder" class="button">Select Repository Folder</button>
+          <button id="expand-all" class="button">Expand All</button>
+          <button id="collapse-all" class="button">Collapse All</button>
+          <div id="selected-path"></div>
+          <span class="loading" id="loading">Loading...</span>
+      </div>
+      <div id="tree-container"></div>
+
+      <script>
+          let fileNotes = JSON.parse(localStorage.getItem('fileNotes') || '{}');
+          let currentHandle = null;
+
+          async function getFilesFromDirectory(dirHandle, path = '') {
+              const files = [];
+              for await (const entry of dirHandle.values()) {
+                  const entryPath = path ? `${path}/${entry.name}` : entry.name;
+                  if (entry.kind === 'file') {
+                      files.push(entryPath);
+                  } else if (entry.kind === 'directory') {
+                      const subFiles = await getFilesFromDirectory(entry, entryPath);
+                      files.push(...subFiles);
+                  }
+              }
+              return files;
+          }
+
+          async function selectFolder() {
+              try {
+                  document.getElementById('loading').style.display = 'inline';
+                  const dirHandle = await window.showDirectoryPicker();
+                  currentHandle = dirHandle;
+                  document.getElementById('selected-path').textContent = `Selected: ${dirHandle.name}`;
+                  
+                  const files = await getFilesFromDirectory(dirHandle);
+                  const tree = buildTreeStructure(files);
+                  renderTree(tree);
+              } catch (err) {
+                  console.error('Error selecting folder:', err);
+                  alert('Error selecting folder. Please make sure you\'re using a modern browser and have granted the necessary permissions.');
+              } finally {
+                  document.getElementById('loading').style.display = 'none';
+              }
+          }
+
+          function buildTreeStructure(paths) {
+              const tree = {};
+              
+              for (const path of paths) {
+                  const parts = path.split('/');
+                  let current = tree;
+                  
+                  for (let i = 0; i < parts.length; i++) {
+                      const part = parts[i];
+                      if (!current[part]) {
+                          current[part] = {};
+                      }
+                      current = current[part];
+                  }
+              }
+              
+              return tree;
+          }
+
+          function renderTree(tree, parent = document.getElementById('tree-container'), path = '') {
+              parent.innerHTML = '';
+              
+              for (const [name, children] of Object.entries(tree)) {
+                  const item = document.createElement('div');
+                  item.className = 'tree-item';
+                  
+                  const currentPath = path ? `${path}/${name}` : name;
+                  const isFolder = Object.keys(children).length > 0;
+                  
+                  const toggle = document.createElement('span');
+                  toggle.className = 'toggle';
+                  toggle.textContent = isFolder ? '▶' : ' ';
+                  
+                  const content = document.createElement('span');
+                  content.className = isFolder ? 'folder' : 'file';
+                  content.textContent = name;
+                  
+                  item.appendChild(toggle);
+                  item.appendChild(content);
+                  
+                  if (!isFolder) {
+                      const noteInput = document.createElement('input');
+                      noteInput.className = 'note-input';
+                      noteInput.type = 'text';
+                      noteInput.placeholder = 'Add note...';
+                      noteInput.value = fileNotes[currentPath] || '';
+                      
+                      noteInput.addEventListener('change', (e) => {
+                          fileNotes[currentPath] = e.target.value;
+                          localStorage.setItem('fileNotes', JSON.stringify(fileNotes));
+                          updateNoteIndicator(item, currentPath);
+                      });
+                      
+                      item.appendChild(noteInput);
+                      updateNoteIndicator(item, currentPath);
+                  }
+                  
+                  if (isFolder) {
+                      const subTree = document.createElement('div');
+                      subTree.className = 'tree';
+                      subTree.style.display = 'none';
+                      renderTree(children, subTree, currentPath);
+                      item.appendChild(subTree);
+                      
+                      toggle.addEventListener('click', () => {
+                          const isExpanded = toggle.textContent === '▼';
+                          toggle.textContent = isExpanded ? '▶' : '▼';
+                          subTree.style.display = isExpanded ? 'none' : 'block';
+                      });
+                  }
+                  
+                  parent.appendChild(item);
+              }
+          }
+
+          function updateNoteIndicator(item, path) {
+              const existingIndicator = item.querySelector('.note-indicator');
+              if (existingIndicator) {
+                  existingIndicator.remove();
+              }
+              
+              if (fileNotes[path]) {
+                  const indicator = document.createElement('span');
+                  indicator.className = 'note-indicator';
+                  
+                  const tooltip = document.createElement('div');
+                  tooltip.className = 'tooltip';
+                  tooltip.textContent = fileNotes[path];
+                  
+                  indicator.appendChild(tooltip);
+                  item.appendChild(indicator);
+                  
+                  indicator.addEventListener('mouseenter', () => {
+                      tooltip.style.display = 'block';
+                  });
+                  
+                  indicator.addEventListener('mouseleave', () => {
+                      tooltip.style.display = 'none';
+                  });
+              }
+          }
+
+          function expandAll() {
+              const toggles = document.querySelectorAll('.toggle');
+              toggles.forEach(toggle => {
+                  if (toggle.textContent === '▶') {
+                      toggle.textContent = '▼';
+                      toggle.parentElement.querySelector('.tree').style.display = 'block';
+                  }
+              });
+          }
+
+          function collapseAll() {
+              const toggles = document.querySelectorAll('.toggle');
+              toggles.forEach(toggle => {
+                  if (toggle.textContent === '▼') {
+                      toggle.textContent = '▶';
+                      toggle.parentElement.querySelector('.tree').style.display = 'none';
+                  }
+              });
+          }
+
+          document.getElementById('select-folder').addEventListener('click', selectFolder);
+          document.getElementById('expand-all').addEventListener('click', expandAll);
+          document.getElementById('collapse-all').addEventListener('click', collapseAll);
+      </script>
+  </body>
+  </html>
